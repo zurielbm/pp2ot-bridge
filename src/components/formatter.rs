@@ -328,7 +328,10 @@ pub fn Formatter() -> Element {
                                                             });
                                                         if let Some(ref_end) = last_ref {
                                                             if ref_end > 0 {
-                                                                let default_duration_ms: u64 = 5 * 60 * 1000;
+                                                                let settings = AppSettings::load();
+                                                                let default_duration_ms = parse_duration_to_ms(
+                                                                    &settings.default_duration,
+                                                                );
                                                                 format_ms_to_duration(ref_end + default_duration_ms)
                                                             } else {
                                                                 "00:00:00".to_string()
@@ -347,16 +350,11 @@ pub fn Formatter() -> Element {
                                                                 s => s.to_string(),
                                                             }
                                                         },
-                                                        end_time: {
-                                                            if suggested_end_time == "00:00:00" {
-                                                               match AppSettings::load().default_end_time.as_str() {
-                                                                   "" => "00:00:00".to_string(),
-                                                                   s => s.to_string(),
-                                                               }
-                                                            } else {
-                                                                suggested_end_time
-                                                            }
-                                                        },
+                
+
+        
+
+                                                        end_time: { suggested_end_time },
                                                         count_to_end: false,
                                                         link_start: true,
                                                         insertion_index: None,
@@ -475,13 +473,16 @@ pub fn Formatter() -> Element {
                                                         value: "{duration_clone}",
                                                         readonly: true,
                                                         onclick: move |_| {
-                                                            active_time_edit.set(Some(TimeEditContext {
-                                                                item_idx,
-                                                                sub_item_idx: None,
-                                                                field: TimeField::Duration,
-                                                                current_value: duration_clone.clone(),
-                                                            }));
-                                                        }
+                                                            active_time_edit
+                                                                .set(
+                                                                    Some(TimeEditContext {
+                                                                        item_idx,
+                                                                        sub_item_idx: None,
+                                                                        field: TimeField::Duration,
+                                                                        current_value: duration_clone.clone(),
+                                                                    }),
+                                                                );
+                                                        },
                                                     }
                                                 }
                                                 div { class: "field-group",
@@ -492,13 +493,16 @@ pub fn Formatter() -> Element {
                                                         value: "{end_time_clone}",
                                                         readonly: true,
                                                         onclick: move |_| {
-                                                            active_time_edit.set(Some(TimeEditContext {
-                                                                item_idx,
-                                                                sub_item_idx: None,
-                                                                field: TimeField::EndTime,
-                                                                current_value: end_time_clone.clone(),
-                                                            }));
-                                                        }
+                                                            active_time_edit
+                                                                .set(
+                                                                    Some(TimeEditContext {
+                                                                        item_idx,
+                                                                        sub_item_idx: None,
+                                                                        field: TimeField::EndTime,
+                                                                        current_value: end_time_clone.clone(),
+                                                                    }),
+                                                                );
+                                                        },
                                                     }
                                                 }
                                                 div { class: "field-group checkbox-group",
@@ -620,12 +624,15 @@ pub fn Formatter() -> Element {
                                                                         readonly: true,
                                                                         onclick: move |e| {
                                                                             e.stop_propagation();
-                                                                            active_time_edit.set(Some(TimeEditContext {
-                                                                                item_idx,
-                                                                                sub_item_idx: Some(entry_idx),
-                                                                                field: TimeField::Duration,
-                                                                                current_value: duration_clone.clone(),
-                                                                            }));
+                                                                            active_time_edit
+                                                                                .set(
+                                                                                    Some(TimeEditContext {
+                                                                                        item_idx,
+                                                                                        sub_item_idx: Some(entry_idx),
+                                                                                        field: TimeField::Duration,
+                                                                                        current_value: duration_clone.clone(),
+                                                                                    }),
+                                                                                );
                                                                         },
                                                                     }
                                                                 }
@@ -638,12 +645,15 @@ pub fn Formatter() -> Element {
                                                                         readonly: true,
                                                                         onclick: move |e| {
                                                                             e.stop_propagation();
-                                                                            active_time_edit.set(Some(TimeEditContext {
-                                                                                item_idx,
-                                                                                sub_item_idx: Some(entry_idx),
-                                                                                field: TimeField::EndTime,
-                                                                                current_value: end_time_clone.clone(),
-                                                                            }));
+                                                                            active_time_edit
+                                                                                .set(
+                                                                                    Some(TimeEditContext {
+                                                                                        item_idx,
+                                                                                        sub_item_idx: Some(entry_idx),
+                                                                                        field: TimeField::EndTime,
+                                                                                        current_value: end_time_clone.clone(),
+                                                                                    }),
+                                                                                );
                                                                         },
                                                                     }
                                                                 }
@@ -1075,6 +1085,7 @@ pub fn Formatter() -> Element {
                                                 let entry_type = entry.entry_type.clone();
                                                 let entry_time_end = entry.time_end;
 
+        
                                                 let is_referenced = formatter_items
                                                     .read()
                                                     .iter()
@@ -1193,7 +1204,7 @@ pub fn Formatter() -> Element {
                             }
                         }
                         active_time_edit.set(None);
-                    }
+                    },
                 }
             }
         }
