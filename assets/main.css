@@ -628,7 +628,7 @@ body {
 
 .formatter-container {
     display: grid;
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 320px 1fr 340px;
     gap: 32px;
     height: 100%;
     padding: 32px;
@@ -953,4 +953,177 @@ body {
 .btn-push:hover {
     background: #0891b2;
     box-shadow: 0 0 30px rgba(6, 182, 212, 0.3);
+}
+
+/* Layout Fixes for Formatter Page */
+.formatter-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    gap: 20px;
+    overflow: hidden;
+}
+
+.connection-status-bar {
+    display: flex;
+    gap: 20px;
+    flex-shrink: 0;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    background: var(--bg-surface);
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border-subtle);
+}
+
+.indicator-dot.success {
+    color: var(--color-success);
+}
+
+.indicator-dot.error {
+    color: var(--color-error);
+}
+
+/* Override container to fit in flex page */
+.formatter-page .formatter-container {
+    flex: 1;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+    height: auto;
+    width: 100%;
+}
+
+.console-panel {
+    flex-shrink: 0;
+    height: 200px;
+    min-height: 150px;
+    max-height: 30vh;
+}
+
+/* Timeline Panel (Right) */
+.timeline-panel:hover {
+    border-color: var(--accent-ot);
+}
+
+.timeline-panel .panel-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.timeline-panel .btn-icon.small {
+    width: 24px;
+    height: 24px;
+    font-size: 0.9rem;
+    background: transparent;
+    border: none;
+}
+
+.timeline-panel .btn-icon.small:hover {
+    color: var(--accent-ot);
+    background: rgba(6, 182, 212, 0.1);
+}
+
+.timeline-content {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.rundown-info {
+    padding: 12px 16px;
+    background: var(--bg-app);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.rundown-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent-ot);
+    text-transform: uppercase;
+}
+
+.rundown-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.timeline-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.timeline-item-container {
+    margin-bottom: 4px;
+}
+
+.timeline-entry {
+    background: var(--bg-app);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid transparent;
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-bottom: 4px;
+}
+
+.timeline-entry.nested {
+    margin-left: 20px;
+    border-left-width: 2px;
+}
+
+.timeline-entry.group {
+    background: var(--bg-surface);
+    border-color: var(--border-active);
+    margin-top: 12px;
+}
+
+.timeline-entry.group .entry-title {
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.entry-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.entry-cue {
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 24px;
+    text-align: center;
+}
+
+.entry-title {
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.entry-duration {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
 }
