@@ -65,25 +65,158 @@ fn Navbar() -> Element {
     }
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
+struct AppSettings {
+    pp_host: String,
+    pp_port: String,
+    ot_host: String,
+    ot_port: String,
+}
+
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            pp_host: "localhost".to_string(),
+            pp_port: "1025".to_string(),
+            ot_host: "localhost".to_string(),
+            ot_port: "4001".to_string(),
+        }
+    }
+}
+
+impl AppSettings {
+    fn load() -> Self {
+        if let Ok(contents) = std::fs::read_to_string("settings.json") {
+            if let Ok(settings) = serde_json::from_str(&contents) {
+                return settings;
+            }
+        }
+        Self::default()
+    }
+
+    fn save(&self) -> std::io::Result<()> {
+        let contents = serde_json::to_string_pretty(self)?;
+        std::fs::write("settings.json", contents)
+    }
+}
+
 /// Home page - Bridge Control Center
+#[derive(Debug, serde::Deserialize, PartialEq, Clone)]
+struct PlaylistResponse {
+    id: Dictionary,
+    items: Vec<PlaylistItem>,
+}
+
+#[derive(Debug, serde::Deserialize, PartialEq, Clone)]
+struct PlaylistItem {
+    id: Dictionary,
+    #[serde(rename = "type")]
+    item_type: String,
+}
+
+#[derive(Debug, serde::Deserialize, PartialEq, Clone)]
+struct Dictionary {
+    uuid: String,
+    name: String,
+    index: usize,
+}
+
 #[component]
 fn Home() -> Element {
     let mut is_syncing = use_signal(|| false);
+    let mut playlist_name = use_signal(|| "Sunday SPANISH 10am".to_string());
+    
+    // Resource to fetch playlist items
+    let mut playlist_resource = use_resource(move || async move {
+        let name = playlist_name();
+        // Load settings to get the correct host/port
+        // Note: In a real async environment, we might want to pass these as props or context
+        // to avoid reading file on every request, but for this button click it's fine.
+        let settings = AppSettings::load(); 
+        
+        // Don't fetch if empty to avoid initial error
+        if name.is_empty() {
+            return Ok(vec![]);
+        }
+        
+        let url = format!("http://{}:{}/v1/playlist/{}", settings.pp_host, settings.pp_port, name);
+        // We'll return a result to handle errors gracefully
+        let client = reqwest::Client::new();
+        let res = client.get(&url)
+            .header("accept", "application/json")
+            .send()
+            .await;
+            
+        match res {
+            Ok(response) => {
+                if response.status().is_success() {
+                    match response.json::<PlaylistResponse>().await {
+                        Ok(data) => Ok(data.items),
+                        Err(e) => Err(format!("Failed to parse data: {}", e))
+                    }
+                } else {
+                    Err(format!("API Error: {}", response.status()))
+                }
+            },
+            Err(_) => Err("Failed to connect to ProPresenter".to_string())
+        }
+    });
 
     rsx! {
         div { class: "page-container",
             div { class: "status-grid",
                 // ProPresenter Status Card
                 div { class: "status-card pro-presenter",
-                    div { class: "card-header", "PROPRESENTER" }
+                    div { class: "card-header", "PROPRESENTER SOURCE" }
                     div { class: "card-body",
                         div { class: "status-indicator online",
                             span { class: "indicator-dot" }
                             "CONNECTED"
                         }
-                        div { class: "status-details",
-                            div { "Running on: localhost:1025" }
-                            div { "Last heartbeat: 2s ago" }
+                        
+                        div { class: "control-group",
+                            label { "PLAYLIST NAME" }
+                            div { class: "input-row",
+                                input {
+                                    value: "{playlist_name}",
+                                    oninput: move |e| playlist_name.set(e.value())
+                                }
+                                button {
+                                    class: "btn-icon",
+                                    onclick: move |_| playlist_resource.restart(),
+                                    "↻" 
+                                }
+                            }
+                        }
+
+                        // Playlist Items List
+                        div { class: "playlist-preview",
+                            match &*playlist_resource.read() {
+                                Some(Ok(items)) => rsx! {
+                                    div { class: "items-header", 
+                                        span { "ITEMS ({items.len()})" }
+                                    }
+                                    div { class: "items-list",
+                                        for item in items {
+                                            div { class: "playlist-item",
+                                                span { class: "item-index", "{item.id.index + 1}" }
+                                                span { class: "item-name", "{item.id.name}" }
+                                                span { 
+                                                    class: "item-type", 
+                                                    style: "font-size: 0.65rem; color: var(--text-muted); margin-left: auto; text-transform: uppercase;",
+                                                    "{item.item_type}" 
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                Some(Err(e)) => rsx! {
+                                    div { class: "error-msg", "⚠ {e}" }
+                                },
+                                None => rsx! {
+                                    div { class: "loading-msg", "Loading..." }
+                                }
+                            }
                         }
                     }
                 }
@@ -106,15 +239,19 @@ fn Home() -> Element {
 
                 // OnTime Status Card
                 div { class: "status-card on-time",
-                    div { class: "card-header", "ONTIME" }
+                    div { class: "card-header", "ONTIME DESTINATION" }
                     div { class: "card-body",
                         div { class: "status-indicator online",
                             span { class: "indicator-dot" }
                             "CONNECTED"
                         }
                         div { class: "status-details",
-                            div { "Running on: localhost:4001" }
+                            // Display loaded settings or defaults if we wanted, 
+                            // but for now static text is okay or we could fetch them too.
+                            // Let's keep it simple for this step.
+                            div { "Running on configured port" }
                             div { "Last heartbeat: 2s ago" }
+                            div { "Next API call in: 500ms" }
                         }
                     }
                 }
@@ -124,10 +261,13 @@ fn Home() -> Element {
             div { class: "console-panel",
                 div { class: "panel-header", "LIVE LOGS" }
                 div { class: "console-output",
-                    div { class: "log-entry info", "[10:21:02] Application started" }
-                    div { class: "log-entry success", "[10:21:03] Connected to ProPresenter API" }
-                    div { class: "log-entry success", "[10:21:03] Connected to OnTime API" }
-                    div { class: "log-entry system", "[10:21:05] Bridge ready for sync" }
+                     div { class: "log-entry info", "[10:21:02] Application started" }
+                     if let Some(Err(e)) = &*playlist_resource.read() {
+                         div { class: "log-entry error", "[Error] {e}" }
+                     }
+                     if let Some(Ok(items)) = &*playlist_resource.read() {
+                         div { class: "log-entry success", "[Success] Fetched {items.len()} items from playlist" }
+                     }
                 }
             }
         }
@@ -137,10 +277,9 @@ fn Home() -> Element {
 /// Settings page
 #[component]
 fn Settings() -> Element {
-    let mut pp_host = use_signal(|| "localhost".to_string());
-    let mut pp_port = use_signal(|| "1025".to_string());
-    let mut ot_host = use_signal(|| "localhost".to_string());
-    let mut ot_port = use_signal(|| "4001".to_string());
+    // Initialize with loaded settings
+    let mut settings = use_signal(AppSettings::load);
+    let mut save_status = use_signal(|| "");
 
     rsx! {
         div { class: "page-container settings-view",
@@ -153,18 +292,17 @@ fn Settings() -> Element {
                     div { class: "input-group",
                         label { "Host Address" }
                         input {
-                            value: "{pp_host}",
-                            oninput: move |e| pp_host.set(e.value())
+                            value: "{settings.read().pp_host}",
+                            oninput: move |e| settings.write().pp_host = e.value()
                         }
                     }
                     div { class: "input-group",
                         label { "Port" }
                         input {
-                            value: "{pp_port}",
-                            oninput: move |e| pp_port.set(e.value())
+                            value: "{settings.read().pp_port}",
+                            oninput: move |e| settings.write().pp_port = e.value()
                         }
                     }
-                    button { class: "btn-secondary", "TEST CONNECTION" }
                 }
 
                 // OnTime Config
@@ -173,18 +311,17 @@ fn Settings() -> Element {
                     div { class: "input-group",
                         label { "Host Address" }
                         input {
-                            value: "{ot_host}",
-                            oninput: move |e| ot_host.set(e.value())
+                            value: "{settings.read().ot_host}",
+                            oninput: move |e| settings.write().ot_host = e.value()
                         }
                     }
                     div { class: "input-group",
                         label { "Port" }
                         input {
-                            value: "{ot_port}",
-                            oninput: move |e| ot_port.set(e.value())
+                            value: "{settings.read().ot_port}",
+                            oninput: move |e| settings.write().ot_port = e.value()
                         }
                     }
-                    button { class: "btn-secondary", "TEST CONNECTION" }
                 }
 
                 // Sync Settings
@@ -197,6 +334,25 @@ fn Settings() -> Element {
                     div { class: "setting-row",
                         label { "Auto-start on launch" }
                         input { type: "checkbox" }
+                    }
+                }
+
+                div { class: "settings-card full-width",
+                    style: "background: transparent; border: none; box-shadow: none;",
+                    button { 
+                        class: "btn-secondary", 
+                        style: "background: var(--accent-bridge); color: #000; border-color: var(--accent-bridge); font-weight: 800;",
+                        onclick: move |_| {
+                            match settings.read().save() {
+                                Ok(_) => save_status.set("Configuration Saved!"),
+                                Err(e) => save_status.set("Failed to save!"),
+                            }
+                        },
+                        "SAVE CONFIGURATION" 
+                    }
+                    div { 
+                        style: "text-align: center; color: var(--color-success); margin-top: 10px; height: 20px;",
+                        "{save_status}" 
                     }
                 }
             }
