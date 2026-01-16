@@ -818,6 +818,32 @@ body {
     color: var(--text-primary);
 }
 
+.group-name-input {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    flex: 1;
+    min-width: 0;
+    transition: all 0.2s;
+}
+
+.group-name-input:hover {
+    background: var(--bg-surface);
+    border-color: var(--border-subtle);
+}
+
+.group-name-input:focus {
+    outline: none;
+    background: var(--bg-surface);
+    border-color: var(--accent-ot);
+    box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.1);
+}
+
 .group-count {
     font-size: 0.75rem;
     color: var(--text-muted);

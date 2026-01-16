@@ -1,6 +1,6 @@
 {
-  "pp_host": "192.168.50.81",
-  "pp_port": "1025",
+  "pp_host": "localhost",
+  "pp_port": "52153",
   "ot_host": "localhost",
   "ot_port": "4001"
 }
