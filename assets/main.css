@@ -1127,6 +1127,7 @@ body {
     color: var(--text-muted);
     font-family: var(--font-mono);
 }
+
 /* Timeline Selection Styles */
 .timeline-entry.selectable {
     cursor: pointer;
@@ -1139,7 +1140,8 @@ body {
 }
 
 .timeline-entry.selected {
-    background: rgba(6, 182, 212, 0.1); /* Cyan tint */
+    background: rgba(6, 182, 212, 0.1);
+    /* Cyan tint */
     border: 1px solid var(--accent-ot);
     box-shadow: var(--glow-ot);
 }
@@ -1151,7 +1153,8 @@ body {
 
 /* Specific styling for group selection */
 .timeline-entry.group.selected {
-    background: rgba(16, 185, 129, 0.1); /* Green tint for groups */
+    background: rgba(16, 185, 129, 0.1);
+    /* Green tint for groups */
     border-color: var(--accent-bridge);
 }
 
@@ -1296,4 +1299,319 @@ body {
     color: var(--accent-bridge);
     font-weight: 500;
     margin-left: 8px;
+}
+
+/* Time Picker Modal */
+.time-picker-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.time-picker-modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    width: 400px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    animation: modal-pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modal-pop {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.tp-header {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.tp-inputs {
+    display: flex;
+    align-items: flex-end;
+    /* Align baselines */
+    justify-content: center;
+    gap: 10px;
+}
+
+.tp-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.tp-column label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.tp-input {
+    width: 60px;
+    height: 50px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-family: monospace;
+    text-align: center;
+    outline: none;
+}
+
+.tp-input:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+}
+
+.tp-separator {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--text-muted);
+    padding-bottom: 12px;
+    /* Align with input text */
+}
+
+.tp-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.tp-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.btn-primary {
+    background: var(--accent-primary);
+    border: none;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+/* Cursor pointer for readonly inputs */
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* Time Picker Favorites */
+.tp-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-top: 4px;
+}
+
+.tp-favorites {
+    width: 100%;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+}
+
+.tp-fav-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.tp-fav-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 80px;
+    overflow-y: auto;
+}
+
+.tp-fav-chip {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    font-family: monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-primary);
+}
+
+.tp-fav-chip:hover {
+    background: var(--accent-surface);
+    border-color: var(--accent-secondary);
+    color: white;
+}
+
+/* Time Picker Validation */
+.tp-input.invalid {
+    border-color: #ef4444;
+    /* red-500 */
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.tp-input.invalid:focus {
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.tp-error-msg {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: #ef4444;
+    text-align: center;
+    font-weight: 500;
+    padding: 6px;
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    background: var(--bg-secondary) !important;
+    color: var(--text-muted) !important;
+    border-color: transparent !important;
+}
+
+button:disabled:hover {
+    transform: none !important;
+    background: var(--bg-secondary) !important;
+}
+
+/* Enhanced Contrast & Favorites UI */
+.time-picker-modal {
+    background: #18181b;
+    /* Darker background */
+    border: 1px solid #3f3f46;
+    /* Lighter border */
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+}
+
+.tp-input {
+    background: #09090b;
+    /* Very dark input bg */
+    border: 1px solid #52525b;
+    /* Visible border */
+    color: #fafafa;
+    /* Bright text */
+    font-weight: 700;
+    /* Thicker font */
+}
+
+.tp-input:focus {
+    border-color: var(--accent-bridge);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.tp-separator {
+    color: #e4e4e7;
+    /* Brighter separator */
+    font-weight: 700;
+}
+
+.tp-header {
+    color: #fafafa;
+    border-bottom-color: #3f3f46;
+}
+
+label {
+    color: #d4d4d8;
+    /* Brighter labels */
+    font-weight: 600;
+}
+
+/* Favorites Chips with Delete */
+.tp-fav-item {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid #3f3f46;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-right: 4px;
+    /* Space between items */
+    margin-bottom: 4px;
+    /* Space between rows */
+}
+
+.tp-fav-chip {
+    background: #27272a;
+    border: none;
+    border-radius: 0;
+    padding: 6px 10px;
+    color: #e4e4e7;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+}
+
+.tp-fav-chip:hover {
+    background: #3f3f46;
+}
+
+.tp-fav-delete {
+    background: #27272a;
+    border: none;
+    border-left: 1px solid #3f3f46;
+    color: #ef4444;
+    padding: 0 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    border-radius: 0;
+}
+
+.tp-fav-delete:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
 }

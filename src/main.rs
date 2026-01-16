@@ -15,7 +15,13 @@ const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 fn main() {
-    dioxus::launch(App);
+    let config = dioxus::desktop::Config::new()
+        .with_window(
+            dioxus::desktop::WindowBuilder::new()
+                .with_title("PP2OT Bridge")
+                .with_min_inner_size(dioxus::desktop::LogicalSize::new(1000.0, 800.0))
+        );
+    dioxus::LaunchBuilder::desktop().with_cfg(config).launch(App);
 }
 
 #[component]
@@ -73,6 +79,22 @@ struct AppSettings {
     pp_port: String,
     ot_host: String,
     ot_port: String,
+    #[serde(default = "default_duration_val")]
+    default_duration: String,
+    #[serde(default = "default_end_time_val")]
+    default_end_time: String,
+    #[serde(default)]
+    favorite_durations: Vec<String>,
+    #[serde(default)]
+    favorite_end_times: Vec<String>,
+}
+
+fn default_duration_val() -> String {
+    "00:05:00".to_string()
+}
+
+fn default_end_time_val() -> String {
+    "00:00:00".to_string()
 }
 
 impl Default for AppSettings {
@@ -82,6 +104,10 @@ impl Default for AppSettings {
             pp_port: "1025".to_string(),
             ot_host: "localhost".to_string(),
             ot_port: "4001".to_string(),
+            default_duration: default_duration_val(),
+            default_end_time: default_end_time_val(),
+            favorite_durations: vec![],
+            favorite_end_times: vec![],
         }
     }
 }
@@ -171,6 +197,24 @@ fn Settings() -> Element {
                         input {
                             value: "{settings.read().ot_port}",
                             oninput: move |e| settings.write().ot_port = e.value(),
+                        }
+                    }
+                }
+
+                div { class: "settings-card full-width",
+                    div { class: "card-header", "DEFAULTS" }
+                    div { class: "input-group",
+                        label { "Default Duration" }
+                        input {
+                            value: "{settings.read().default_duration}",
+                            oninput: move |e| settings.write().default_duration = e.value(),
+                        }
+                    }
+                    div { class: "input-group",
+                        label { "Default End Time" }
+                        input {
+                            value: "{settings.read().default_end_time}",
+                            oninput: move |e| settings.write().default_end_time = e.value(),
                         }
                     }
                 }
@@ -265,6 +309,20 @@ enum InsertionMode {
     Into, // For groups
 }
 
+#[derive(Debug, Clone, PartialEq, Copy)]
+enum TimeField {
+    Duration,
+    EndTime,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+struct TimeEditContext {
+    item_idx: usize,
+    sub_item_idx: Option<usize>,
+    field: TimeField,
+    current_value: String,
+}
+
 /// Unified item type for the formatter - can be standalone or a group
 #[derive(Debug, Clone, PartialEq)]
 enum FormatterItem {
@@ -340,12 +398,223 @@ struct OntimeRundown {
 }
 
 #[component]
+fn TimePicker(
+    value: String,
+    field: TimeField,
+    on_close: EventHandler<()>,
+    on_save: EventHandler<String>,
+) -> Element {
+    let mut settings = use_signal(AppSettings::load);
+    // Parse initial value "HH:MM:SS"
+    let (initial_h, initial_m, initial_s) = {
+        let parts: Vec<&str> = value.split(':').collect();
+        let h = parts.get(0).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
+        let m = parts.get(1).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
+        let s = parts.get(2).and_then(|s| s.parse::<i32>().ok()).unwrap_or(0);
+        (h, m, s)
+    };
+
+    let mut h = use_signal(|| initial_h);
+    let mut m = use_signal(|| initial_m);
+    let mut s = use_signal(|| initial_s);
+
+    let save = move |_| {
+        let new_time = format!("{:02}:{:02}:{:02}", h(), m(), s());
+        on_save.call(new_time);
+    };
+
+    let add_favorite = move |_| {
+        let new_time = format!("{:02}:{:02}:{:02}", h(), m(), s());
+        let mut current_settings = settings.write();
+        match field {
+            TimeField::Duration => {
+                if !current_settings.favorite_durations.contains(&new_time) {
+                    current_settings.favorite_durations.push(new_time);
+                    let _ = current_settings.save();
+                }
+            }
+            TimeField::EndTime => {
+                if !current_settings.favorite_end_times.contains(&new_time) {
+                    current_settings.favorite_end_times.push(new_time);
+                    let _ = current_settings.save();
+                }
+            }
+        }
+    };
+    
+    let mut remove_favorite = move |fav_to_remove: String| {
+        let mut current_settings = settings.write();
+        match field {
+            TimeField::Duration => {
+                current_settings.favorite_durations.retain(|x| x != &fav_to_remove);
+                let _ = current_settings.save();
+            }
+            TimeField::EndTime => {
+                current_settings.favorite_end_times.retain(|x| x != &fav_to_remove);
+                let _ = current_settings.save();
+            }
+        }
+    };
+    
+    // Validation Helpers
+    let is_valid_h = h() >= 0 && h() <= 23;
+    let is_valid_m = m() >= 0 && m() <= 59;
+    let is_valid_s = s() >= 0 && s() <= 59;
+    let is_form_valid = is_valid_h && is_valid_m && is_valid_s;
+
+    let favorites = match field {
+        TimeField::Duration => settings.read().favorite_durations.clone(),
+        TimeField::EndTime => settings.read().favorite_end_times.clone(),
+    };
+
+    rsx! {
+        div { class: "time-picker-overlay", onclick: move |_| on_close.call(()),
+            div { class: "time-picker-modal", onclick: move |e| e.stop_propagation(),
+                div { class: "tp-header",
+                    if matches!(field, TimeField::EndTime) {
+                        span { "Set End Time" }
+                        div { class: "tp-subtitle", "(24-hour format)" }
+                    } else {
+                        span { "Set Duration" }
+                    }
+                }
+                div { class: "tp-inputs",
+                    div { class: "tp-column",
+                        label { "HR" }
+                        input {
+                            r#type: "number",
+                            min: "0",
+                            max: "23",
+                            class: if is_valid_h { "tp-input" } else { "tp-input invalid" },
+                            value: "{h}",
+                            oninput: move |e| h.set(e.value().parse().unwrap_or(0))
+                        }
+                    }
+                    span { class: "tp-separator", ":" }
+                    div { class: "tp-column",
+                        label { "MIN" }
+                        input {
+                            r#type: "number",
+                            min: "0",
+                            max: "59",
+                            class: if is_valid_m { "tp-input" } else { "tp-input invalid" },
+                            value: "{m}",
+                            oninput: move |e| m.set(e.value().parse().unwrap_or(0))
+                        }
+                    }
+                    span { class: "tp-separator", ":" }
+                    div { class: "tp-column",
+                        label { "SEC" }
+                        input {
+                            r#type: "number",
+                            min: "0",
+                            max: "59",
+                            class: if is_valid_s { "tp-input" } else { "tp-input invalid" },
+                            value: "{s}",
+                            oninput: move |e| s.set(e.value().parse().unwrap_or(0))
+                        }
+                    }
+                }
+                
+                if !is_form_valid {
+                    div { class: "tp-error-msg",
+                        "Invalid Time Format. Please ensure 0-23 hours and 0-59 minutes/seconds."
+                    }
+                }
+                
+                if !favorites.is_empty() {
+                    div { class: "tp-favorites",
+                        div { class: "tp-fav-label", "FAVORITES" }
+                        div { class: "tp-fav-list",
+                            for fav in favorites {
+                                div { class: "tp-fav-item",
+                                    {
+                                        let fav_click = fav.clone();
+                                        let fav_display = fav.clone();
+                                        rsx! {
+                                            button {
+                                                class: "tp-fav-chip",
+                                                onclick: move |_| {
+                                                    let parts: Vec<&str> = fav_click.split(':').collect();
+                                                    if parts.len() == 3 {
+                                                        h.set(parts[0].parse().unwrap_or(0));
+                                                        m.set(parts[1].parse().unwrap_or(0));
+                                                        s.set(parts[2].parse().unwrap_or(0));
+                                                    }
+                                                },
+                                                "{fav_display}"
+                                            }
+                                        }
+                                    }
+                                    {
+                                        let fav_del = fav.clone();
+                                        // We need to clone remove_favorite but it's a closure capturing environment
+                                        // Instead, we can't easily clone the mutable closure.
+                                        // Standard pattern: use a signal or shared state, OR simply refresh the settings.
+                                        // Given the constraints, let's try just cloning the string and calling the closure if possible, 
+                                        // but `remove_favorite` itself is FnMut.
+                                        // Actually, `remove_favorite` captures `settings` and `field`. `settings` is a Signal (Copy), `field` is Copy.
+                                        // So `remove_favorite` *should* be Copy if not for the String argument? No strings capture.
+                                        // Wait, `settings.write()` requires mut access. 
+                                        // Workaround: Inline the logic or use a different pattern.
+                                        // Simplest fix: Inline the remove logic to avoid closure ownership issues in loop.
+                                        let mut settings_del = settings;
+                                        let field_del = field;
+                                        rsx! {
+                                            button {
+                                                class: "tp-fav-delete",
+                                                onclick: move |e: Event<MouseData>| {
+                                                    e.stop_propagation();
+                                                    let mut current_settings = settings_del.write();
+                                                    match field_del {
+                                                        TimeField::Duration => {
+                                                            current_settings.favorite_durations.retain(|x| x != &fav_del);
+                                                            let _ = current_settings.save();
+                                                        }
+                                                        TimeField::EndTime => {
+                                                            current_settings.favorite_end_times.retain(|x| x != &fav_del);
+                                                            let _ = current_settings.save();
+                                                        }
+                                                    }
+                                                },
+                                                "×"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                div { class: "tp-actions",
+                    button { class: "btn-secondary", onclick: move |_| on_close.call(()), "Cancel" }
+                    button { 
+                        class: "btn-secondary",
+                        disabled: !is_form_valid, 
+                        onclick: add_favorite, 
+                        "♥ Add" 
+                    }
+                    button { 
+                        class: "btn-primary",
+                        disabled: !is_form_valid,
+                        onclick: save, 
+                        "Save" 
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
 fn Formatter() -> Element {
     let mut playlist_name = use_signal(|| String::new());
     // Unified list of items (standalone entries and groups)
     let mut formatter_items = use_signal(|| Vec::<FormatterItem>::new());
     // None = standalone mode (append to end), Some(idx) = add inside group at that index
     let mut selected_group_idx = use_signal(|| Option::<usize>::None);
+    let mut active_time_edit = use_signal(|| Option::<TimeEditContext>::None);
     let mut logs = use_signal(|| vec![
         format!("[{}] System Ready", chrono::Local::now().format("%H:%M:%S"))
     ]);
@@ -686,8 +955,22 @@ fn Formatter() -> Element {
                                                         item_id: item_clone.id.uuid.clone(),
                                                         name: item_clone.id.name.clone(),
                                                         item_type: item_clone.item_type.clone(),
-                                                        duration: "00:05:00".to_string(),
-                                                        end_time: suggested_end_time,
+                                                        duration: {
+                                                            match AppSettings::load().default_duration.as_str() {
+                                                                "" => "00:05:00".to_string(),
+                                                                s => s.to_string(),
+                                                            }
+                                                        },
+                                                        end_time: {
+                                                            if suggested_end_time == "00:00:00" {
+                                                               match AppSettings::load().default_end_time.as_str() {
+                                                                   "" => "00:00:00".to_string(),
+                                                                   s => s.to_string(),
+                                                               }
+                                                            } else {
+                                                                suggested_end_time
+                                                            }
+                                                        },
                                                         count_to_end: false,
                                                         link_start: true,
                                                         insertion_index: None,
@@ -805,32 +1088,34 @@ fn Formatter() -> Element {
                                                     label { "Duration" }
                                                     input {
                                                         r#type: "text",
-                                                        class: "time-input",
+                                                        class: "time-input cursor-pointer",
                                                         value: "{duration_clone}",
-                                                        placeholder: "00:05:00",
-                                                        oninput: move |e| {
-                                                            if let FormatterItem::Standalone(ref mut ent) = &mut formatter_items
-                                                                .write()[item_idx]
-                                                            {
-                                                                ent.duration = e.value();
-                                                            }
-                                                        },
+                                                        readonly: true,
+                                                        onclick: move |_| {
+                                                            active_time_edit.set(Some(TimeEditContext {
+                                                                item_idx,
+                                                                sub_item_idx: None,
+                                                                field: TimeField::Duration,
+                                                                current_value: duration_clone.clone(),
+                                                            }));
+                                                        }
                                                     }
                                                 }
                                                 div { class: "field-group",
                                                     label { "End Time" }
                                                     input {
                                                         r#type: "text",
-                                                        class: "time-input",
+                                                        class: "time-input cursor-pointer",
                                                         value: "{end_time_clone}",
-                                                        placeholder: "00:00:00",
-                                                        oninput: move |e| {
-                                                            if let FormatterItem::Standalone(ref mut ent) = &mut formatter_items
-                                                                .write()[item_idx]
-                                                            {
-                                                                ent.end_time = e.value();
-                                                            }
-                                                        },
+                                                        readonly: true,
+                                                        onclick: move |_| {
+                                                            active_time_edit.set(Some(TimeEditContext {
+                                                                item_idx,
+                                                                sub_item_idx: None,
+                                                                field: TimeField::EndTime,
+                                                                current_value: end_time_clone.clone(),
+                                                            }));
+                                                        }
                                                     }
                                                 }
                                                 div { class: "field-group checkbox-group",
@@ -947,16 +1232,17 @@ fn Formatter() -> Element {
                                                                     label { "Dur" }
                                                                     input {
                                                                         r#type: "text",
-                                                                        class: "time-input",
+                                                                        class: "time-input cursor-pointer",
                                                                         value: "{duration_clone}",
-                                                                        placeholder: "00:05:00",
-                                                                        onclick: move |e| e.stop_propagation(),
-                                                                        oninput: move |e| {
-                                                                            if let FormatterItem::Group { entries, .. } = &mut formatter_items
-                                                                                .write()[item_idx]
-                                                                            {
-                                                                                entries[entry_idx].duration = e.value();
-                                                                            }
+                                                                        readonly: true,
+                                                                        onclick: move |e| {
+                                                                            e.stop_propagation();
+                                                                            active_time_edit.set(Some(TimeEditContext {
+                                                                                item_idx,
+                                                                                sub_item_idx: Some(entry_idx),
+                                                                                field: TimeField::Duration,
+                                                                                current_value: duration_clone.clone(),
+                                                                            }));
                                                                         },
                                                                     }
                                                                 }
@@ -964,16 +1250,17 @@ fn Formatter() -> Element {
                                                                     label { "End" }
                                                                     input {
                                                                         r#type: "text",
-                                                                        class: "time-input",
+                                                                        class: "time-input cursor-pointer",
                                                                         value: "{end_time_clone}",
-                                                                        placeholder: "00:00:00",
-                                                                        onclick: move |e| e.stop_propagation(),
-                                                                        oninput: move |e| {
-                                                                            if let FormatterItem::Group { entries, .. } = &mut formatter_items
-                                                                                .write()[item_idx]
-                                                                            {
-                                                                                entries[entry_idx].end_time = e.value();
-                                                                            }
+                                                                        readonly: true,
+                                                                        onclick: move |e| {
+                                                                            e.stop_propagation();
+                                                                            active_time_edit.set(Some(TimeEditContext {
+                                                                                item_idx,
+                                                                                sub_item_idx: Some(entry_idx),
+                                                                                field: TimeField::EndTime,
+                                                                                current_value: end_time_clone.clone(),
+                                                                            }));
                                                                         },
                                                                     }
                                                                 }
@@ -1535,6 +1822,39 @@ fn Formatter() -> Element {
                 div { class: "console-output",
                     for log in logs.read().iter() {
                         div { class: "log-entry", "{log}" }
+                    }
+                }
+            }
+            // Time Picker Modal Render
+            if let Some(ctx) = active_time_edit.read().clone() {
+                TimePicker {
+                    value: ctx.current_value,
+                    field: ctx.field,
+                    on_close: move |_| active_time_edit.set(None),
+                    on_save: move |new_val: String| {
+                        let mut items = formatter_items.write();
+                        if let Some(item) = items.get_mut(ctx.item_idx) {
+                            match item {
+                                FormatterItem::Standalone(entry) => {
+                                    match ctx.field {
+                                        TimeField::Duration => entry.duration = new_val,
+                                        TimeField::EndTime => entry.end_time = new_val,
+                                    }
+                                }
+                                FormatterItem::Group { entries, .. } => {
+                                    if let Some(sub_idx) = ctx.sub_item_idx {
+                                        if let Some(entry) = entries.get_mut(sub_idx) {
+                                            match ctx.field {
+                                                TimeField::Duration => entry.duration = new_val,
+                                                TimeField::EndTime => entry.end_time = new_val,
+                                            }
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        active_time_edit.set(None);
                     }
                 }
             }
