@@ -258,6 +258,12 @@ struct FormatterGroup {
     collapsed: bool,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+enum InsertionMode {
+    After,
+    Into, // For groups
+}
+
 /// Unified item type for the formatter - can be standalone or a group
 #[derive(Debug, Clone, PartialEq)]
 enum FormatterItem {
@@ -268,6 +274,12 @@ enum FormatterItem {
         color: String,
         entries: Vec<TimedEntry>,
         collapsed: bool,
+    },
+    Reference {
+        id: String,
+        title: String,
+        item_type: String,
+        mode: InsertionMode,
     },
 }
 
@@ -330,7 +342,6 @@ fn Formatter() -> Element {
     let mut playlist_name = use_signal(|| String::new());
     // Unified list of items (standalone entries and groups)
     let mut formatter_items = use_signal(|| Vec::<FormatterItem>::new());
-    let mut insertion_point = use_signal(|| "End".to_string());
     // None = standalone mode (append to end), Some(idx) = add inside group at that index
     let mut selected_group_idx = use_signal(|| Option::<usize>::None);
     let mut logs = use_signal(|| vec![
@@ -491,6 +502,7 @@ fn Formatter() -> Element {
         formatter_items.read().iter().any(|item| match item {
             FormatterItem::Standalone(entry) => entry.item_id == item_id,
             FormatterItem::Group { entries, .. } => entries.iter().any(|e| e.item_id == item_id),
+            FormatterItem::Reference { .. } => false,
         })
     };
     
@@ -512,6 +524,7 @@ fn Formatter() -> Element {
         let already_added = items.iter().any(|fi| match fi {
             FormatterItem::Standalone(e) => e.item_id == item.id.uuid,
             FormatterItem::Group { entries, .. } => entries.iter().any(|e| e.item_id == item.id.uuid),
+            FormatterItem::Reference { .. } => false,
         });
         
         if already_added {
@@ -619,6 +632,7 @@ fn Formatter() -> Element {
                                             .any(|fi| match fi {
                                                 FormatterItem::Standalone(e) => e.item_id == item.id.uuid,
                                                 FormatterItem::Group { entries, .. } => entries.iter().any(|e| e.item_id == item.id.uuid),
+                                                FormatterItem::Reference { .. } => false,
                                             });
                                         rsx! {
                                             div {
@@ -640,6 +654,7 @@ fn Formatter() -> Element {
                                                     let already_added = items.iter().any(|fi| match fi {
                                                         FormatterItem::Standalone(e) => e.item_id == item_clone.id.uuid,
                                                         FormatterItem::Group { entries, .. } => entries.iter().any(|e| e.item_id == item_clone.id.uuid),
+                                                        FormatterItem::Reference { .. } => false,
                                                     });
                                                     
                                                     if already_added {
@@ -682,30 +697,11 @@ fn Formatter() -> Element {
                 // Right Panel - Formatter Groups
                 div { class: "formatter-panel groups-panel",
                     div { class: "panel-title", "ONTIME FORMATTER" }
-                    // Insertion point selector
+                    // Insertion selector removed - replaced by Reference Items list logic
                     div { class: "insertion-selector",
-                        label { "Insert New Items After:" }
-                        div { class: "input-row",
-                            select {
-                                class: "insertion-select",
-                                value: "{insertion_point}",
-                                onchange: move |e| insertion_point.set(e.value()),
-                                option { value: "End", "End (Append to Bottom)" }
-                                match &*ontime_resource.read() {
-                                    Some(Ok(events)) => rsx! {
-                                        for event in events {
-                                            option { value: "{event.id}", "After: {event.title}" }
-                                        }
-                                    },
-                                    _ => rsx! {},
-                                }
-                            }
-                            button {
-                                class: "btn-icon",
-                                onclick: move |_| ontime_resource.restart(),
-                                "↻"
-                            }
-                        }
+                         div { style: "color: var(--text-muted); font-size: 0.8rem; padding: 0 0 10px 0;",
+                             "Click items in Timeline to add insertion points."
+                         }
                     }
                     // Timeline Panel - removed placeholder
                     button {
@@ -819,6 +815,28 @@ fn Formatter() -> Element {
                                             }
                                         }
                                     }
+                                },
+                                FormatterItem::Reference { title, item_type, mode, .. } => {
+                                    rsx! {
+                                        div { class: "reference-item",
+                                            div { class: "ref-icon", 
+                                                if matches!(mode, InsertionMode::Into) { "↳" } else { "↓" }
+                                            }
+                                            div { class: "ref-details",
+                                                span { class: "ref-label", 
+                                                    if matches!(mode, InsertionMode::Into) { "INSERT INTO" } else { "INSERT AFTER" }
+                                                }
+                                                span { class: "ref-title", "{title}" }
+                                            }
+                                            button {
+                                                class: "btn-remove",
+                                                onclick: move |_| {
+                                                    formatter_items.write().remove(item_idx);
+                                                },
+                                                "×"
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -836,7 +854,6 @@ fn Formatter() -> Element {
                                         ),
                                     );
                                 let items_data = formatter_items.read().clone();
-                                let insertion_choice = insertion_point();
                                 let ontime_events = ontime_resource.read().clone();
                                 spawn(async move {
                                     let settings = AppSettings::load();
@@ -872,18 +889,37 @@ fn Formatter() -> Element {
                                         _ => (vec![], vec![]),
                                     };
                                     
-                                    let mut current_after_id = if insertion_choice == "Start" {
-                                        None
-                                    } else if insertion_choice == "End" {
-                                        existing_ids.last().cloned()
-                                    } else if existing_ids.contains(&insertion_choice) {
-                                        Some(insertion_choice.clone())
-                                    } else {
-                                        existing_ids.last().cloned()
-                                    };
-                                    
+                                    // Determine initial 'after' and 'parent' - default to END if no explicit ref is first
+                                    let mut current_after_id = existing_ids.last().cloned();
+                                    let mut current_parent_id: Option<String> = None;
+
                                     for item in items_data {
                                         match item {
+                                            FormatterItem::Reference { id, item_type: _, mode, .. } => {
+                                                // Update current insertion context
+                                                match mode {
+                                                    InsertionMode::After => {
+                                                        current_after_id = Some(id.clone());
+                                                        // When inserting AFTER an item, we need to know its parent to stay in same group
+                                                        // We can try to look it up from 'existing_ids' if we had parent info,
+                                                        // but simpler is to assume 'parent' matches the referenced item's parent? 
+                                                        // Or just let Ontime handle it. If we set 'after=ID', Ontime places it after ID. 
+                                                        // We should CLEAR current_parent_id to avoid forcing it if we can't look it up easily.
+                                                        // Ideally we should lookup the item to see its parent.
+                                                        // Since we don't have easy parent lookup map here, we might just nullify parent
+                                                        // and rely on 'after'. (Ontime usually infers parent from 'after' sibling).
+                                                        current_parent_id = None; 
+                                                    }
+                                                    InsertionMode::Into => {
+                                                        current_parent_id = Some(id.clone());
+                                                        // When inserting INTO a group, 'after' should be the last child.
+                                                        // But we don't know the last child easily here.
+                                                        // Sending just 'parent' with no 'after' usually appends to group.
+                                                        current_after_id = None; 
+                                                    }
+                                                }
+                                                logs.write().push(format!("[{}] Set Context: Mode {:?} ID {}", chrono::Local::now().format("%H:%M:%S"), mode, id));
+                                            }
                                             FormatterItem::Standalone(entry) => {
                                                 if existing_titles.contains(&entry.name) {
                                                     continue;
@@ -894,9 +930,15 @@ fn Formatter() -> Element {
                                                     "title": entry.name,
                                                     "duration": duration_ms
                                                 });
+                                                
+                                                if let Some(ref pid) = current_parent_id {
+                                                    event_payload["parent"] = serde_json::json!(pid);
+                                                }
+                                                
                                                 if let Some(ref a) = current_after_id {
                                                     event_payload["after"] = serde_json::json!(a);
                                                 }
+                                                
                                                 logs.write().push(format!("[{}] Event: {}", chrono::Local::now().format("%H:%M:%S"), entry.name));
                                                 
                                                 match client.post(&endpoint).header("Content-Type", "application/json").json(&event_payload).send().await {
@@ -926,6 +968,11 @@ fn Formatter() -> Element {
                                                     "title": name,
                                                     "colour": color
                                                 });
+                                                
+                                                if let Some(ref pid) = current_parent_id {
+                                                    group_payload["parent"] = serde_json::json!(pid);
+                                                }
+                                                
                                                 if let Some(ref a) = current_after_id {
                                                     group_payload["after"] = serde_json::json!(a);
                                                 }
@@ -957,7 +1004,11 @@ fn Formatter() -> Element {
                                                     current_after_id = Some(gid.clone());
                                                 }
                                                 
-                                                // Add entries under group
+                                                // Add entries under this NEW group
+                                                // NOTE: The internal entries of this new group will always have THIS group as parent.
+                                                // Their 'after' logic restarts within the group.
+                                                let mut internal_after_id = None; 
+                                                
                                                 for entry in entries {
                                                     if existing_titles.contains(&entry.name) {
                                                         logs.write().push(format!("[{}] Skipping duplicate: {}", chrono::Local::now().format("%H:%M:%S"), entry.name));
@@ -972,9 +1023,12 @@ fn Formatter() -> Element {
                                                     if let Some(ref gid) = group_id {
                                                         event_payload["parent"] = serde_json::json!(gid);
                                                     }
-                                                    if let Some(ref a) = current_after_id {
+                                                    
+                                                    // For internal items, we chain them one after another inside the group
+                                                    if let Some(ref a) = internal_after_id {
                                                         event_payload["after"] = serde_json::json!(a);
                                                     }
+                                                    
                                                     logs.write().push(format!("[{}] Entry: {}", chrono::Local::now().format("%H:%M:%S"), entry.name));
                                                     
                                                     match client.post(&endpoint).header("Content-Type", "application/json").json(&event_payload).send().await {
@@ -983,7 +1037,7 @@ fn Formatter() -> Element {
                                                             if status.is_success() {
                                                                 if let Ok(json) = resp.json::<serde_json::Value>().await {
                                                                     if let Some(id) = json.get("id").and_then(|v| v.as_str()) {
-                                                                        current_after_id = Some(id.to_string());
+                                                                        internal_after_id = Some(id.to_string());
                                                                         logs.write().push(format!("[{}] ✓ Created: {}", chrono::Local::now().format("%H:%M:%S"), id));
                                                                     }
                                                                 }
@@ -1001,9 +1055,16 @@ fn Formatter() -> Element {
                                         }
                                     }
                                     
-                                    // REFRESH TIMELINE AFTER PUSH (with delay to allow Ontime to process)
+                                    // REFRESH TIMELINE AFTER PUSH
                                     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
                                     logs.write().push(format!("[{}] Push Complete - refreshing timeline...", chrono::Local::now().format("%H:%M:%S")));
+                                    
+                                    // Clear items and selection BUT keep context selection if user wants?
+                                    // User requested: "everything should be reseted to default after pushing"
+                                    // Clear items and selection
+                                    formatter_items.write().clear();
+                                    selected_group_idx.set(None);
+                                    
                                     ontime_timeline_resource.restart();
                                     ontime_resource.restart();
                                 });
@@ -1032,20 +1093,54 @@ fn Formatter() -> Element {
                                 div { class: "timeline-list",
                                     for entry_id in &rundown.flat_order {
                                         if let Some(entry) = rundown.entries.get(entry_id) {
-                                            div {
-                                                class: if entry.parent.is_some() { "timeline-entry nested" } else { 
-                                                    if entry.entry_type == "group" { "timeline-entry group" } else { "timeline-entry" }
-                                                },
-                                                style: if !entry.colour.is_empty() { format!("border-left-color: {}", entry.colour) } else { "".to_string() },
+                                            {
+                                                let entry_id_clone = entry.id.clone();
+                                                let entry_title_clone = entry.title.clone();
+                                                let entry_type = entry.entry_type.clone();
                                                 
-                                                div { class: "entry-main",
-                                                    if !entry.cue.is_empty() {
-                                                        span { class: "entry-cue", "{entry.cue}" }
-                                                    }
-                                                    span { class: "entry-title", "{entry.title}" }
-                                                    if entry.duration > 0 {
-                                                        span { class: "entry-duration",
-                                                            "{format_ms_to_duration(entry.duration)}"
+                                                // Calculate which entries are referenced to show feedback in timeline
+                                                let is_referenced = formatter_items.read().iter().any(|item| matches!(item, FormatterItem::Reference { id, .. } if *id == entry_id_clone));
+
+                                                let base_class = if entry.parent.is_some() {
+                                                    "timeline-entry nested selectable"
+                                                } else if entry.entry_type == "group" {
+                                                    "timeline-entry group selectable"
+                                                } else {
+                                                    "timeline-entry selectable"
+                                                };
+                                                
+                                                rsx! {
+                                                    div {
+                                                        class: if is_referenced { format!("{} selected", base_class) } else { base_class.to_string() },
+                                                        style: if !entry.colour.is_empty() { format!("border-left-color: {}", entry.colour) } else { "".to_string() },
+                                                        onclick: move |_| {
+                                                            let mode = if entry_type == "group" { InsertionMode::Into } else { InsertionMode::After };
+                                                            logs.write().push(format!("[{}] Added Reference: {}", chrono::Local::now().format("%H:%M:%S"), entry_title_clone));
+                                                            
+                                                            // Add Reference to the end of the list
+                                                            formatter_items.write().push(FormatterItem::Reference {
+                                                                id: entry_id_clone.clone(),
+                                                                title: entry_title_clone.clone(),
+                                                                item_type: entry_type.clone(),
+                                                                mode,
+                                                            });
+                                                        },
+                                                        
+                                                        div { class: "entry-main",
+                                                            if !entry.cue.is_empty() {
+                                                                span { class: "entry-cue", "{entry.cue}" }
+                                                            }
+                                                            span { class: "entry-title", "{entry.title}" }
+                                                            if entry.duration > 0 {
+                                                                span { class: "entry-duration",
+                                                                    "{format_ms_to_duration(entry.duration)}"
+                                                                }
+                                                            }
+                                                            
+                                                            // Check icon if referenced
+                                                            if is_referenced {
+                                                                div { style: "margin-left: auto; color: var(--accent-ot); font-weight: bold;", "✓ REF" }
+                                                            }
                                                         }
                                                     }
                                                 }
