@@ -3,7 +3,7 @@
   "pp_port": "52153",
   "ot_host": "localhost",
   "ot_port": "4001",
-  "default_duration": "00:05:00",
+  "default_duration": "00:00:00",
   "default_end_time": "00:00:00",
   "favorite_durations": [],
   "favorite_end_times": [
