@@ -350,10 +350,9 @@ pub fn Formatter() -> Element {
                                                                 s => s.to_string(),
                                                             }
                                                         },
-                
-
         
-
+                
+        
                                                         end_time: { suggested_end_time },
                                                         count_to_end: false,
                                                         link_start: true,
@@ -369,6 +368,8 @@ pub fn Formatter() -> Element {
                                                             }
                                                             FormatterItem::Reference { .. } => false,
                                                         });
+                
+
                                                     if already_added {
                                                         return;
                                                     }
@@ -1086,6 +1087,7 @@ pub fn Formatter() -> Element {
                                                 let entry_time_end = entry.time_end;
 
         
+
                                                 let is_referenced = formatter_items
                                                     .read()
                                                     .iter()
@@ -1108,6 +1110,21 @@ pub fn Formatter() -> Element {
                                                         class: if is_referenced { format!("{} selected", base_class) } else { base_class.to_string() },
                                                         style: if !entry.colour.is_empty() { format!("border-left-color: {}", entry.colour) } else { "".to_string() },
                                                         onclick: move |_| {
+                                                            let is_already_referenced = formatter_items
+                
+        
+                                                                .read()
+                                                                .iter()
+                                                                .any(|item| {
+                                                                    matches!(
+                                                                        item,
+                                                                        FormatterItem::Reference { id, .. }
+                                                                        if *id == entry_id_clone
+                                                                    )
+                                                                });
+                                                            if is_already_referenced {
+                                                                return;
+                                                            }
                                                             let mode = if entry_type == "group" {
                                                                 InsertionMode::Into
                                                             } else {
