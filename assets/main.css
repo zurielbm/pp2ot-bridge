@@ -1204,3 +1204,96 @@ body {
     font-size: 0.9rem;
     font-weight: 600;
 }
+
+/* Editable Entry Fields */
+.editable-entry {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+}
+
+.editable-entry .entry-main {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.editable-entry .entry-title {
+    flex: 1;
+}
+
+.entry-fields {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-left: 4px;
+}
+
+.entry-fields .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.entry-fields .field-group label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.entry-fields .time-input {
+    width: 80px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.entry-fields .time-input:focus {
+    border-color: var(--accent-ot);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(38, 177, 163, 0.2);
+}
+
+.entry-fields .checkbox-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+}
+
+.entry-fields .checkbox-group input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent-ot);
+    cursor: pointer;
+}
+
+.entry-fields .checkbox-group label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+/* Nested editable entries - compact */
+.timeline-entry.nested.editable-entry .entry-fields {
+    margin-left: 0;
+}
+
+.timeline-entry.nested.editable-entry .entry-fields .time-input {
+    width: 65px;
+    font-size: 0.8rem;
+    padding: 4px 6px;
+}
+
+/* End Time in Timeline */
+.entry-end-time {
+    font-size: 0.75rem;
+    color: var(--accent-bridge);
+    font-weight: 500;
+    margin-left: 8px;
+}
