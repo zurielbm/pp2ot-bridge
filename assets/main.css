@@ -56,6 +56,7 @@ body {
     letter-spacing: -0.01em;
 }
 
+
 /* Navbar */
 #navbar {
     height: 64px;
@@ -67,6 +68,33 @@ body {
     padding: 0 32px;
     flex-shrink: 0;
 }
+
+/* Main App Container - Scrollable area */
+#app-container {
+    flex: 1;
+    /* min-height: 0 is crucial for nested flex scrolling */
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    /* Custom Scrollbar for container */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-active) var(--bg-app);
+}
+
+#app-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+#app-container::-webkit-scrollbar-track {
+    background: var(--bg-app);
+}
+
+#app-container::-webkit-scrollbar-thumb {
+    background-color: var(--border-active);
+    border-radius: 4px;
+}
+
 
 .nav-brand {
     font-weight: 800;
@@ -125,14 +153,14 @@ body {
 }
 
 .page-container {
-    height: 100%;
     padding: 32px;
     display: flex;
     flex-direction: column;
     gap: 32px;
     max-width: 1400px;
     margin: 0 auto;
-    overflow-y: auto;
+    /* Allow container to grow so parent #app-container handles scrolling */
+    min-height: 100%;
 }
 
 /* Home Grid */
@@ -1008,6 +1036,15 @@ body {
     height: 200px;
     min-height: 150px;
     max-height: 30vh;
+    transition: all 0.2s ease;
+}
+
+.console-panel.collapsed {
+    height: 38px !important;
+    min-height: 0 !important;
+    flex: 0 0 auto !important;
+    overflow: hidden;
+    border-bottom: none;
 }
 
 /* Timeline Panel (Right) */
@@ -1615,6 +1652,7 @@ label {
     background: rgba(239, 68, 68, 0.2);
     color: #f87171;
 }
+
 /* Drop Targets */
 .draggable.drag-over-top {
     border-top: 2px solid var(--accent-bridge) !important;

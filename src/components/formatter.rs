@@ -19,6 +19,7 @@ pub fn Formatter() -> Element {
     let mut active_time_edit = use_signal(|| Option::<TimeEditContext>::None);
     let mut dragged_item_idx = use_signal(|| Option::<usize>::None);
     let mut drag_over_idx = use_signal(|| Option::<usize>::None);
+    let mut show_logs = use_signal(|| true);
     let mut logs = use_signal(|| vec![
         format!("[{}] System Ready", chrono::Local::now().format("%H:%M:%S"))
     ]);
@@ -1338,11 +1339,22 @@ pub fn Formatter() -> Element {
                 }
             }
             // Live Logs Panel
-            div { class: "console-panel",
-                div { class: "panel-header", "LIVE LOGS" }
-                div { class: "console-output",
-                    for log in logs.read().iter() {
-                        div { class: "log-entry", "{log}" }
+            div { 
+                class: if show_logs() { "console-panel" } else { "console-panel collapsed" },
+                div { class: "panel-header", 
+                    "LIVE LOGS"
+                    button {
+                        class: "btn-icon small",
+                        title: if show_logs() { "Hide Logs" } else { "Show Logs" },
+                        onclick: move |_| show_logs.set(!show_logs()),
+                        if show_logs() { "▼" } else { "▲" }
+                    }
+                }
+                if show_logs() {
+                    div { class: "console-output",
+                        for log in logs.read().iter() {
+                            div { class: "log-entry", "{log}" }
+                        }
                     }
                 }
             }
