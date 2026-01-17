@@ -1,6 +1,6 @@
 [package]
 name = "pp2ot-bridge"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["zurielbm <58864716+zurielbm@users.noreply.github.com>"]
 edition = "2021"
 publish = false
@@ -23,6 +23,6 @@ mobile = ["dioxus/mobile"]
 
 [package.metadata.release]
 # This will run the Dioxus build automatically during the release process
-pre-release-hook = "dx bundle --release"
+pre-release-hook = "/Users/zuriel/.cargo/bin/dx bundle --release"
 tag = true
 push = true
