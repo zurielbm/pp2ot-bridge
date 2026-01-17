@@ -3,6 +3,7 @@ name = "pp2ot-bridge"
 version = "0.1.0"
 authors = ["zurielbm <58864716+zurielbm@users.noreply.github.com>"]
 edition = "2021"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -19,3 +20,4 @@ default = ["desktop"]
 web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
 mobile = ["dioxus/mobile"]
+

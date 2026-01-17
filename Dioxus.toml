@@ -29,3 +29,7 @@ script = []
 publisher = "zurielbm"
 identifier = "com.zuriel.pp2ot-bridge"
 icon = ["assets/icon.icns"]
+
+[package.metadata.release]
+# This runs the Dioxus bundler after the version is bumped but before the tag is created
+pre-release-hook = ["dx", "bundle", "--release"]
