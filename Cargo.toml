@@ -21,3 +21,8 @@ web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
 mobile = ["dioxus/mobile"]
 
+[package.metadata.release]
+# This will run the Dioxus build automatically during the release process
+pre-release-hook = "dx bundle --release"
+tag = true
+push = true
