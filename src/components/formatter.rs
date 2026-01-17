@@ -223,38 +223,38 @@ pub fn Formatter() -> Element {
     };
 
     rsx! {
-        div { class: "formatter-page",
+        div { class: "h-full flex flex-col p-6 gap-6 overflow-hidden bg-zinc-950 font-mono",
             // Connection Status Header
-            div { class: "connection-status-bar",
-                div { class: "status-item",
+            div { class: "flex gap-4 shrink-0",
+                div { class: "flex items-center gap-3 text-[0.7rem] font-bold text-zinc-400 uppercase bg-zinc-900/50 py-2 px-3 rounded border border-zinc-800 shadow-sm",
                     if let Some(Ok(_)) = &*playlists_resource.read() {
-                        div { class: "indicator-dot success" }
+                        div { class: "w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] animate-pulse text-emerald-500", }
                         "ProPresenter: Connected"
                     } else {
-                        div { class: "indicator-dot error" }
+                        div { class: "w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] animate-pulse text-red-500", }
                         "ProPresenter: Disconnected"
                     }
                 }
-                div { class: "status-item",
+                div { class: "flex items-center gap-3 text-[0.7rem] font-bold text-zinc-400 uppercase bg-zinc-900/50 py-2 px-3 rounded border border-zinc-800 shadow-sm",
                     if let Some(Ok(_)) = &*ontime_resource.read() {
-                        div { class: "indicator-dot success" }
+                        div { class: "w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] animate-pulse text-emerald-500", }
                         "Ontime: Connected"
                     } else {
-                        div { class: "indicator-dot error" }
+                        div { class: "w-2 h-2 rounded-full shadow-[0_0_8px_currentColor] animate-pulse text-red-500", }
                         "Ontime: Disconnected"
                     }
                 }
             }
 
-            div { class: "formatter-container",
+            div { class: "flex-1 min-h-0 w-full grid grid-cols-[320px_1fr_340px] gap-6",
                 // Left Panel - Playlist Source
-                div { class: "formatter-panel source-panel",
-                    div { class: "panel-title", "PLAYLIST SOURCE" }
-                    div { class: "control-group",
-                        label { "SELECT PLAYLIST" }
-                        div { class: "input-row",
+                div { class: "bg-zinc-900/80 border border-zinc-800/80 rounded-lg flex flex-col overflow-hidden shadow-lg backdrop-blur-sm",
+                    div { class: "p-4 text-xs font-extrabold tracking-widest text-zinc-500 border-b border-zinc-800/80 bg-zinc-950/30 uppercase flex justify-between items-center", "PLAYLIST SOURCE" }
+                    div { class: "p-4 border-b border-zinc-800/50",
+                        label { class: "text-[0.7rem] font-bold text-zinc-500 tracking-wider mb-2 block uppercase", "SELECT PLAYLIST" }
+                        div { class: "flex gap-2",
                             select {
-                                class: "playlist-select",
+                                class: "flex-1 bg-zinc-950 border border-zinc-700/50 text-zinc-200 p-2.5 rounded font-mono text-sm focus:outline-none focus:border-emerald-500/50 focus:bg-emerald-500/5 transition-all appearance-none cursor-pointer",
                                 onchange: move |e| {
                                     logs.write()
                                         .push(
@@ -282,7 +282,7 @@ pub fn Formatter() -> Element {
                                 }
                             }
                             button {
-                                class: "btn-icon",
+                                class: "w-10 h-10 flex items-center justify-center bg-zinc-800 border border-zinc-700 text-zinc-400 rounded hover:text-emerald-500 hover:border-emerald-500/50 hover:bg-emerald-500/10 transition-all cursor-pointer text-lg",
                                 onclick: move |_| {
                                     logs.write()
                                         .push(
@@ -297,7 +297,7 @@ pub fn Formatter() -> Element {
                             }
                         }
                     }
-                    div { class: "playlist-items",
+                    div { class: "flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent",
                         match &*playlist_resource.read() {
                             Some(Ok(items)) => rsx! {
                                 for item in items {
@@ -315,7 +315,7 @@ pub fn Formatter() -> Element {
                                             });
                                         rsx! {
                                             div {
-                                                class: if is_added { "source-item added" } else { "source-item" },
+                                                class: if is_added { "flex items-center gap-3 p-2.5 rounded-md cursor-pointer transition-all border opacity-50 bg-emerald-500/5 border-emerald-500/20 hover:opacity-70" } else { "flex items-center gap-3 p-2.5 rounded-md cursor-pointer transition-all border border-transparent hover:bg-zinc-800 hover:border-zinc-700" },
                                                 onclick: move |_| {
                                                     let suggested_end_time = {
                                                         let items_read = formatter_items.read();
@@ -396,11 +396,11 @@ pub fn Formatter() -> Element {
                                                     }
                                                 },
                                                 if is_added {
-                                                    span { class: "added-badge", "✓" }
+                                                    span { class: "w-5 h-5 flex items-center justify-center bg-emerald-500 text-black rounded-full text-[0.65rem] font-extrabold shrink-0", "✓" }
                                                 }
-                                                span { class: "item-index", "{item.id.index + 1}" }
-                                                span { class: "item-name", "{item.id.name}" }
-                                                span { class: "item-type", "{item.item_type}" }
+                                                span { class: "text-zinc-600 text-[0.7rem] font-mono min-w-[20px] text-right", "{item.id.index + 1}" }
+                                                span { class: "flex-1 truncate text-sm text-zinc-200", "{item.id.name}" }
+                                                span { class: "text-[0.6rem] text-zinc-500 uppercase tracking-wider", "{item.item_type}" }
                                             }
                                         }
                                     }
@@ -416,8 +416,8 @@ pub fn Formatter() -> Element {
                     }
                 }
                 // Right Panel - Formatter Groups
-                div { class: "formatter-panel groups-panel",
-                    div { class: "panel-title", "ONTIME FORMATTER" }
+                div { class: "bg-zinc-900/80 border border-zinc-800/80 rounded-lg flex flex-col overflow-hidden shadow-lg backdrop-blur-sm",
+                    div { class: "p-4 text-xs font-extrabold tracking-widest text-zinc-500 border-b border-zinc-800/80 bg-zinc-950/30 uppercase flex justify-between items-center", "ONTIME FORMATTER" }
                     // Insertion selector removed - replaced by Reference Items list logic
                     div { class: "insertion-selector",
                         div { style: "color: var(--text-muted); font-size: 0.8rem; padding: 0 0 10px 0;",
@@ -426,7 +426,7 @@ pub fn Formatter() -> Element {
                     }
                     // Timeline Panel - removed placeholder
                     button {
-                        class: "btn-add-group",
+                        class: "m-4 p-3 border-2 border-dashed border-zinc-700 rounded-lg text-zinc-500 font-mono text-xs font-bold hover:border-emerald-500/50 hover:text-emerald-500 hover:bg-emerald-500/5 transition-all w-[calc(100%-2rem)] cursor-pointer",
                         onclick: move |_| {
                             let mut items = formatter_items.write();
                             let group_count = items
@@ -447,7 +447,7 @@ pub fn Formatter() -> Element {
                         },
                         "+ NEW GROUP"
                     }
-                    div { class: "groups-list",
+                    div { class: "flex-1 overflow-y-auto px-4 pb-4 space-y-3 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent",
                         // Render all items (standalone and groups) in unified list
                         for (item_idx, formatter_item) in formatter_items.read().iter().enumerate() {
                             {
@@ -482,9 +482,9 @@ pub fn Formatter() -> Element {
                                     rsx! {
                                         div { 
                                             class: if is_dragging { 
-                                                format!("timeline-entry editable-entry draggable dragging{}", drag_over_class)
+                                                format!("flex flex-col items-stretch p-3 rounded-md bg-zinc-950/50 border border-zinc-800/50 mb-1 backdrop-blur-sm cursor-grab active:cursor-grabbing dragging{}", drag_over_class)
                                             } else { 
-                                                format!("timeline-entry editable-entry draggable{}", drag_over_class)
+                                                format!("flex flex-col items-stretch p-3 rounded-md bg-zinc-950/50 border border-zinc-800/50 mb-1 backdrop-blur-sm cursor-grab active:cursor-grabbing{}", drag_over_class)
                                             },
                                             draggable: true,
                                             ondragstart: move |_| {
@@ -513,23 +513,23 @@ pub fn Formatter() -> Element {
                                                 dragged_item_idx.set(None);
                                                 drag_over_idx.set(None);
                                             },
-                                            div { class: "entry-main",
-                                                span { class: "drag-handle", "⋮⋮" }
-                                                span { class: "entry-title", "{entry.name}" }
+                                            div { class: "flex items-center mb-2.5",
+                                                span { class: "text-zinc-600 cursor-grab mr-2 select-none font-bold", "⋮⋮" }
+                                                span { class: "flex-1 text-sm text-zinc-200 truncate", "{entry.name}" }
                                                 button {
-                                                    class: "btn-remove",
+                                                    class: "w-7 h-7 flex items-center justify-center rounded text-zinc-500 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 transition-all font-mono text-lg",
                                                     onclick: move |_| {
                                                         formatter_items.write().remove(item_idx);
                                                     },
                                                     "×"
                                                 }
                                             }
-                                            div { class: "entry-fields",
-                                                div { class: "field-group",
-                                                    label { "Duration" }
+                                            div { class: "flex gap-3 flex-wrap pl-1",
+                                                div { class: "flex flex-col gap-1",
+                                                    label { class: "text-[0.6rem] uppercase text-zinc-500 font-bold", "Duration" }
                                                     input {
                                                         r#type: "text",
-                                                        class: "time-input cursor-pointer",
+                                                        class: "w-20 p-1.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-200 font-mono text-xs text-center focus:border-cyan-500 focus:outline-none cursor-pointer",
                                                         value: "{duration_clone}",
                                                         readonly: true,
                                                         onclick: move |_| {
@@ -545,11 +545,11 @@ pub fn Formatter() -> Element {
                                                         },
                                                     }
                                                 }
-                                                div { class: "field-group",
-                                                    label { "End Time" }
+                                                div { class: "flex flex-col gap-1",
+                                                    label { class: "text-[0.6rem] uppercase text-zinc-500 font-bold", "End Time" }
                                                     input {
                                                         r#type: "text",
-                                                        class: "time-input cursor-pointer",
+                                                        class: "w-20 p-1.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-200 font-mono text-xs text-center focus:border-cyan-500 focus:outline-none cursor-pointer",
                                                         value: "{end_time_clone}",
                                                         readonly: true,
                                                         onclick: move |_| {
@@ -565,10 +565,11 @@ pub fn Formatter() -> Element {
                                                         },
                                                     }
                                                 }
-                                                div { class: "field-group checkbox-group",
+                                                div { class: "flex items-center gap-1.5",
                                                     input {
                                                         r#type: "checkbox",
                                                         id: "cte-{item_idx}",
+                                                        class: "w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer",
                                                         checked: count_to_end,
                                                         onchange: move |e| {
                                                             if let FormatterItem::Standalone(ref mut ent) = &mut formatter_items
@@ -578,12 +579,13 @@ pub fn Formatter() -> Element {
                                                             }
                                                         },
                                                     }
-                                                    label { r#for: "cte-{item_idx}", "CTE" }
+                                                    label { r#for: "cte-{item_idx}", class: "text-xs text-zinc-400 font-bold cursor-pointer", "CTE" }
                                                 }
-                                                div { class: "field-group checkbox-group",
+                                                div { class: "flex items-center gap-1.5",
                                                     input {
                                                         r#type: "checkbox",
                                                         id: "ls-{item_idx}",
+                                                        class: "w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer",
                                                         checked: link_start,
                                                         onchange: move |e| {
                                                             if let FormatterItem::Standalone(ref mut ent) = &mut formatter_items
@@ -593,7 +595,7 @@ pub fn Formatter() -> Element {
                                                             }
                                                         },
                                                     }
-                                                    label { r#for: "ls-{item_idx}", "Link" }
+                                                    label { r#for: "ls-{item_idx}", class: "text-xs text-zinc-400 font-bold cursor-pointer", "Link" }
                                                 }
                                             }
                                         }
@@ -621,9 +623,9 @@ pub fn Formatter() -> Element {
                                     rsx! {
                                         div {
                                             class: if selected_group_idx() == Some(item_idx) { 
-                                                format!("group-card selected draggable{}", drag_over_class)
+                                                format!("bg-zinc-950 border border-zinc-800 rounded-lg mb-3 cursor-pointer transition-all overflow-hidden !border-cyan-500 shadow-[0_0_0_1px_#06b6d4,0_0_20px_rgba(6,182,212,0.1)] draggable{}", drag_over_class)
                                             } else { 
-                                                format!("group-card draggable{}", drag_over_class)
+                                                format!("bg-zinc-950 border border-zinc-800 rounded-lg mb-3 cursor-pointer transition-all overflow-hidden hover:border-zinc-600 draggable{}", drag_over_class)
                                             },
                                             draggable: true,
                                             ondragstart: move |_| {
@@ -665,10 +667,10 @@ pub fn Formatter() -> Element {
                                                     selected_group_idx.set(Some(item_idx));
                                                 }
                                             },
-                                            div { class: "group-header",
-                                                span { class: "drag-handle", "⋮⋮" }
+                                            div { class: "flex justify-between items-center p-4 border-b border-zinc-800 bg-zinc-900/50",
+                                                span { class: "text-zinc-600 cursor-grab mr-2 select-none font-bold", "⋮⋮" }
                                                 input {
-                                                    class: "group-name-input",
+                                                    class: "bg-transparent border border-transparent text-zinc-100 font-mono font-bold text-sm px-2 py-1 rounded flex-1 min-w-0 hover:bg-zinc-800 hover:border-zinc-700 focus:outline-none focus:bg-zinc-950 focus:border-cyan-500 focus:shadow-[0_0_0_2px_rgba(6,182,212,0.1)] transition-all",
                                                     value: "{name_clone}",
                                                     onclick: move |e| e.stop_propagation(),
                                                     oninput: move |e| {
@@ -680,7 +682,7 @@ pub fn Formatter() -> Element {
                                                 }
                                                 div { style: "width: 30px; height: 30px; border-radius: 4px; margin-right: 8px; background-color: {color_clone}; border: 1px solid rgba(255,255,255,0.3);" }
                                                 input {
-                                                    class: "group-color-input",
+                                                    class: "bg-black/30 border border-white/20 text-white font-mono text-center rounded px-2 py-1 w-20 text-xs",
                                                     style: "width: 80px; padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; font-family: monospace;",
                                                     value: "{color_clone}",
                                                     placeholder: "#779BE7",
@@ -693,9 +695,9 @@ pub fn Formatter() -> Element {
                                                         }
                                                     },
                                                 }
-                                                span { class: "group-count", "{entry_count} items" }
+                                                span { class: "text-xs text-zinc-500 ml-2", "{entry_count} items" }
                                                 button {
-                                                    class: "btn-remove",
+                                                    class: "w-7 h-7 flex items-center justify-center rounded text-zinc-500 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 transition-all font-mono text-lg ml-2",
                                                     title: "Delete Group",
                                                     onclick: move |e| {
                                                         e.stop_propagation();
@@ -799,9 +801,9 @@ pub fn Formatter() -> Element {
                                     let drag_over_class = if let (Some(dragged_idx), Some(over_idx)) = (*dragged_item_idx.read(), *drag_over_idx.read()) {
                                         if over_idx == current_idx && dragged_idx != current_idx {
                                             if dragged_idx < current_idx {
-                                                " drag-over-bottom"
+                                                " border-b-2 border-b-cyan-500"
                                             } else {
-                                                " drag-over-top"
+                                                " border-t-2 border-t-cyan-500"
                                             }
                                         } else {
                                             ""
@@ -812,7 +814,7 @@ pub fn Formatter() -> Element {
 
                                     rsx! {
                                         div { 
-                                            class: format!("reference-item draggable{}", drag_over_class),
+                                            class: format!("pl-4 relative before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-zinc-800 flex flex-col items-stretch p-3 rounded-md bg-zinc-950/50 border border-zinc-800/50 mb-1 backdrop-blur-sm cursor-grab active:cursor-grabbing{}", drag_over_class),
                                             draggable: true,
                                             ondragstart: move |_| {
                                                 dragged_item_idx.set(Some(current_idx));
@@ -839,30 +841,32 @@ pub fn Formatter() -> Element {
                                                 dragged_item_idx.set(None);
                                                 drag_over_idx.set(None);
                                             },
-                                            div { class: "ref-icon",
-                                                if matches!(mode, InsertionMode::Into) {
-                                                    "↳"
-                                                } else {
-                                                    "↓"
-                                                }
-                                            }
-                                            div { class: "ref-details",
-                                                span { class: "drag-handle", "⋮⋮" }
-                                                span { class: "ref-label",
+                                            div { class: "flex items-center text-sm",
+                                                div { class: "text-cyan-500 font-bold mr-2 w-4 text-center",
                                                     if matches!(mode, InsertionMode::Into) {
-                                                        "INSERT INTO"
+                                                        "↳"
                                                     } else {
-                                                        "INSERT AFTER"
+                                                        "↓"
                                                     }
                                                 }
-                                                span { class: "ref-title", "{title}" }
-                                            }
-                                            button {
-                                                class: "btn-remove",
-                                                onclick: move |_| {
-                                                    formatter_items.write().remove(item_idx);
-                                                },
-                                                "×"
+                                                div { class: "flex-1 flex items-center gap-2 overflow-hidden",
+                                                    span { class: "text-zinc-600 cursor-grab select-none font-bold", "⋮⋮" }
+                                                    span { class: "text-[0.6rem] font-bold px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400",
+                                                        if matches!(mode, InsertionMode::Into) {
+                                                            "INSERT INTO"
+                                                        } else {
+                                                            "INSERT AFTER"
+                                                        }
+                                                    }
+                                                    span { class: "flex-1 truncate text-zinc-300 italic", "{title}" }
+                                                }
+                                                button {
+                                                    class: "w-7 h-7 flex items-center justify-center rounded text-zinc-500 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 transition-all font-mono text-lg ml-2",
+                                                    onclick: move |_| {
+                                                        formatter_items.write().remove(item_idx);
+                                                    },
+                                                    "×"
+                                                }
                                             }
                                         }
                                     }
@@ -872,9 +876,9 @@ pub fn Formatter() -> Element {
                         }
                     }
                     // Push to OnTime button
-                    div { class: "action-bar",
+                    div { class: "p-4 border-t border-zinc-800/50",
                         button {
-                            class: "btn-push",
+                            class: "w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-bold tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(8,145,178,0.3)] hover:shadow-[0_0_30px_rgba(8,145,178,0.5)] transform hover:-translate-y-0.5",
                             onclick: move |_| {
                                 logs.write()
                                     .push(
@@ -1217,8 +1221,8 @@ pub fn Formatter() -> Element {
                     }
                 }
                 // RIGHT PANEL - ONTIME TIMELINE
-                div { class: "formatter-panel timeline-panel",
-                    div { class: "panel-title",
+                div { class: "bg-zinc-900/80 border border-zinc-800/80 rounded-lg flex flex-col overflow-hidden shadow-lg backdrop-blur-sm hover:border-cyan-500/50 transition-colors group",
+                    div { class: "p-4 text-xs font-extrabold tracking-widest text-zinc-500 border-b border-zinc-800/80 bg-zinc-950/30 uppercase flex justify-between items-center group-hover:text-cyan-500 transition-colors",
                         span { "ONTIME TIMELINE" }
                         button {
                             class: "btn-icon small",
@@ -1229,11 +1233,11 @@ pub fn Formatter() -> Element {
                     div { class: "timeline-content",
                         match &*ontime_timeline_resource.read() {
                             Some(Ok(rundown)) => rsx! {
-                                div { class: "rundown-info",
-                                    span { class: "rundown-name", "{rundown.title}" }
-                                    span { class: "rundown-meta", "Rev: {rundown.revision}" }
-                                }
-                                div { class: "timeline-list",
+                                    div { class: "flex items-center border-b border-zinc-800/50 py-1.5 last:border-0 hover:bg-zinc-800/30 transition-colors",
+                                        span { class: "flex-1 font-bold truncate text-sm text-zinc-300", "{rundown.title}" }
+                                        span { class: "text-[0.65rem] uppercase text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800", "Rev: {rundown.revision}" }
+                                    }
+                                    div { class: "overflow-y-auto flex-1 pr-1 space-y-0.5 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent",
                                     for entry_id in &rundown.flat_order {
                                         if let Some(entry) = rundown.entries.get(entry_id) {
                                             {
@@ -1255,16 +1259,16 @@ pub fn Formatter() -> Element {
                                                         )
                                                     });
                                                 let base_class = if entry.parent.is_some() {
-                                                    "timeline-entry nested selectable"
+                                                    "ml-4 flex flex-col p-2 rounded hover:bg-zinc-800/80 cursor-pointer border-b border-zinc-800/30 transition-all group"
                                                 } else if entry.entry_type == "group" {
-                                                    "timeline-entry group selectable"
+                                                    "flex flex-col p-2 rounded hover:bg-zinc-800/80 cursor-pointer border-b border-zinc-800/30 bg-zinc-900/30 mt-2 mb-1 group"
                                                 } else {
-                                                    "timeline-entry selectable"
+                                                    "flex flex-col p-2 rounded hover:bg-zinc-800/80 cursor-pointer border-b border-zinc-800/30 transition-all group"
                                                 };
                                                 rsx! {
                                                     div {
-                                                        class: if is_referenced { format!("{} selected", base_class) } else { base_class.to_string() },
-                                                        style: if !entry.colour.is_empty() { format!("border-left-color: {}", entry.colour) } else { "".to_string() },
+                                                        class: if is_referenced { format!("{} !border-r-4 !border-r-emerald-500 bg-emerald-500/5", base_class) } else { base_class.to_string() },
+                                                        style: if !entry.colour.is_empty() { format!("border-left: 3px solid {};", entry.colour) } else { "border-left: 3px solid transparent;".to_string() },
                                                         onclick: move |_| {
                                                             let is_already_referenced = formatter_items
                 
@@ -1304,19 +1308,19 @@ pub fn Formatter() -> Element {
                                                                     time_end: entry_time_end,
                                                                 });
                                                         },
-                                                        div { class: "entry-main",
+                                                        div { class: "flex items-center gap-2",
                                                             if !entry.cue.is_empty() {
-                                                                span { class: "entry-cue", "{entry.cue}" }
+                                                                span { class: "text-[0.65rem] font-bold bg-zinc-800 text-zinc-400 px-1.5 rounded min-w-[24px] text-center", "{entry.cue}" }
                                                             }
-                                                            span { class: "entry-title", "{entry.title}" }
+                                                            span { class: "flex-1 truncate font-medium text-zinc-300 group-hover:text-white transition-colors", "{entry.title}" }
                                                             if entry.duration > 0 {
-                                                                span { class: "entry-duration", "{format_ms_to_duration(entry.duration)}" }
+                                                                span { class: "text-[0.65rem] font-mono text-zinc-500", "{format_ms_to_duration(entry.duration)}" }
                                                             }
                                                             if entry.time_end > 0 {
-                                                                span { class: "entry-end-time", "→ {format_ms_to_duration(entry.time_end)}" }
+                                                                span { class: "text-[0.65rem] font-mono text-zinc-600", "→ {format_ms_to_duration(entry.time_end)}" }
                                                             }
                                                             if is_referenced {
-                                                                div { style: "margin-left: auto; color: var(--accent-ot); font-weight: bold;",
+                                                                div { class: "ml-auto text-emerald-500 font-bold text-[0.6rem] uppercase tracking-wider bg-emerald-500/10 px-1.5 rounded border border-emerald-500/20",
                                                                     "✓ REF"
                                                                 }
                                                             }
@@ -1340,20 +1344,24 @@ pub fn Formatter() -> Element {
             }
             // Live Logs Panel
             div { 
-                class: if show_logs() { "console-panel" } else { "console-panel collapsed" },
-                div { class: "panel-header", 
+                class: if show_logs() { 
+                    "bg-zinc-950 border border-zinc-800 rounded-lg flex flex-col overflow-hidden shrink-0 h-[200px] min-h-[150px] max-h-[30vh] transition-all" 
+                } else { 
+                    "bg-zinc-950 border border-zinc-800 rounded-lg flex flex-col overflow-hidden shrink-0 h-[38px] min-h-0 flex-none border-b-0 transition-all" 
+                },
+                div { class: "p-2.5 px-4 bg-zinc-900 border-b border-zinc-800 text-xs font-bold text-zinc-400 uppercase tracking-wider flex justify-between items-center select-none cursor-pointer hover:text-zinc-200 hover:bg-zinc-800",
+                    onclick: move |_| show_logs.set(!show_logs()),
                     "LIVE LOGS"
                     button {
-                        class: "btn-icon small",
+                        class: "w-5 h-5 flex items-center justify-center rounded hover:bg-zinc-700 text-zinc-400 transition-colors",
                         title: if show_logs() { "Hide Logs" } else { "Show Logs" },
-                        onclick: move |_| show_logs.set(!show_logs()),
                         if show_logs() { "▼" } else { "▲" }
                     }
                 }
                 if show_logs() {
-                    div { class: "console-output",
+                    div { class: "flex-1 overflow-y-auto bg-zinc-950 p-2 font-mono text-xs space-y-0.5 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent",
                         for log in logs.read().iter() {
-                            div { class: "log-entry", "{log}" }
+                            div { class: "text-xs font-mono py-0.5 text-zinc-400 border-b border-zinc-800/30 last:border-0 hover:bg-zinc-900/50 hover:text-zinc-200 break-all", "{log}" }
                         }
                     }
                 }
