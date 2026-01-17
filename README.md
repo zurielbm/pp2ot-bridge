@@ -1,50 +1,109 @@
-# Development
+# PP2OT Bridge
 
-Your new bare-bones project includes minimal organization with a single `main.rs` file and a few assets.
+A native desktop application that bridges **ProPresenter** and **Ontime** by extracting playlist cue times from ProPresenter and formatting them for import into Ontime timelines.
 
-```
-project/
-├─ assets/ # Any assets that are used by the app should be placed here
-├─ src/
-│  ├─ main.rs # main.rs is the entry point to your application and currently contains all components for the app
-├─ Cargo.toml # The Cargo.toml file defines the dependencies and feature flags for your project
-```
+Built with [Dioxus 0.7](https://dioxuslabs.com/) using Rust, featuring a modern dark UI with Tailwind CSS.
 
-### Automatic Tailwind (Dioxus 0.7+)
+---
 
-As of Dioxus 0.7, there no longer is a need to manually install tailwind. Simply `dx serve` and you're good to go!
+## Features
 
-Automatic tailwind is supported by checking for a file called `tailwind.css` in your app's manifest directory (next to Cargo.toml). To customize the file, use the dioxus.toml:
+- **ProPresenter Integration**: Connect to ProPresenter's API to fetch playlists and their timing data
+- **Ontime Integration**: Push formatted events directly to Ontime's API
+- **Time Formatter**: Convert and group playlist items with editable cue times
+- **Live Console**: Real-time logging panel for debugging API calls
+- **Settings Management**: Configure connection settings, defaults, and sync preferences
 
-```toml
-[application]
-tailwind_input = "my.css"
-tailwind_output = "assets/out.css" # also customize the location of the out file!
-```
+---
 
-### Tailwind Manual Install
+## Development
 
-To use tailwind plugins or manually customize tailwind, you can can install the Tailwind CLI and use it directly.
+### Prerequisites
 
-### Tailwind
-1. Install npm: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
-2. Install the Tailwind CSS CLI: https://tailwindcss.com/docs/installation/tailwind-cli
-3. Run the following command in the root of the project to start the Tailwind CSS compiler:
+- [Rust](https://rustup.rs/) (latest stable)
+- [Dioxus CLI](https://dioxuslabs.com/learn/0.7/getting_started)
 
 ```bash
-npx @tailwindcss/cli -i ./input.css -o ./assets/tailwind.css --watch
+# Install the Dioxus CLI
+curl -sSL http://dioxus.dev/install.sh | sh
 ```
 
-### Serving Your App
-
-Run the following command in the root of your project to start developing with the default platform:
+### Running the Dev Server
 
 ```bash
 dx serve
 ```
 
-To run for a different platform, use the `--platform platform` flag. E.g.
+This starts the development server with hot-reload enabled. Tailwind CSS is automatically processed (Dioxus 0.7+).
+
+To explicitly run as a desktop app:
+
 ```bash
 dx serve --platform desktop
 ```
 
+### Verify Code Compiles
+
+```bash
+cargo check
+```
+
+---
+
+## Building for Production
+
+Bundle the application for release:
+
+```bash
+dx bundle --platform desktop --release
+```
+
+The bundled application will be output to `target/dx/pp2ot-bridge/release/bundle/`.
+
+---
+
+## Project Structure
+
+```
+pp2ot-bridge/
+├── assets/              # Static assets (CSS, icons, images)
+├── src/
+│   ├── main.rs          # App entry point and routing
+│   ├── components/      # UI components
+│   │   ├── formatter.rs # Main formatter page
+│   │   ├── navbar.rs    # Navigation bar
+│   │   ├── settings.rs  # Settings page
+│   │   └── time_picker.rs
+│   ├── types/           # Data structures and API types
+│   └── utils.rs         # Utility functions
+├── Cargo.toml           # Rust dependencies
+├── Dioxus.toml          # Dioxus configuration
+└── tailwind.css         # Tailwind input file
+```
+
+---
+
+## Configuration
+
+Settings are persisted in `settings.json` and include:
+
+- **ProPresenter**: Host, port, and target playlist name
+- **Ontime**: Host and port for the Ontime server
+- **Defaults**: Default duration and end action for new items
+- **Sync**: Auto-refresh and timeline position preferences
+
+---
+
+## Tailwind CSS
+
+Automatic Tailwind is enabled. No manual setup required.
+
+To customize, modify `Dioxus.toml`:
+
+```toml
+[application]
+tailwind_input = "tailwind.css"
+tailwind_output = "assets/tailwind.css"
+```
+
+For plugins or advanced customization, see the [Tailwind CLI docs](https://tailwindcss.com/docs/installation/tailwind-cli).

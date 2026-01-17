@@ -23,3 +23,9 @@ script = []
 # Javascript code file
 # serve: [dev-server] only
 script = []
+
+
+[bundle]
+publisher = "zurielbm"
+identifier = "com.zuriel.pp2ot-bridge"
+icon = ["assets/icon.icns"]
