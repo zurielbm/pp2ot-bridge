@@ -1615,3 +1615,39 @@ label {
     background: rgba(239, 68, 68, 0.2);
     color: #f87171;
 }
+/* Drop Targets */
+.draggable.drag-over-top {
+    border-top: 2px solid var(--accent-bridge) !important;
+    position: relative;
+    z-index: 10;
+}
+
+.draggable.drag-over-bottom {
+    border-bottom: 2px solid var(--accent-bridge) !important;
+    position: relative;
+    z-index: 10;
+}
+
+.draggable.drag-over-top::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 0;
+    width: 6px;
+    height: 6px;
+    background: var(--accent-bridge);
+    border-radius: 50%;
+    transform: translateY(50%);
+}
+
+.draggable.drag-over-bottom::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 0;
+    width: 6px;
+    height: 6px;
+    background: var(--accent-bridge);
+    border-radius: 50%;
+    transform: translateY(-50%);
+}

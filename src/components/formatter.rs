@@ -17,6 +17,8 @@ pub fn Formatter() -> Element {
     // None = standalone mode (append to end), Some(idx) = add inside group at that index
     let mut selected_group_idx = use_signal(|| Option::<usize>::None);
     let mut active_time_edit = use_signal(|| Option::<TimeEditContext>::None);
+    let mut dragged_item_idx = use_signal(|| Option::<usize>::None);
+    let mut drag_over_idx = use_signal(|| Option::<usize>::None);
     let mut logs = use_signal(|| vec![
         format!("[{}] System Ready", chrono::Local::now().format("%H:%M:%S"))
     ]);
@@ -446,16 +448,72 @@ pub fn Formatter() -> Element {
                     }
                     div { class: "groups-list",
                         // Render all items (standalone and groups) in unified list
-                        for (item_idx , formatter_item) in formatter_items.read().iter().enumerate() {
-                            match formatter_item {
+                        for (item_idx, formatter_item) in formatter_items.read().iter().enumerate() {
+                            {
+                                // Drag handlers
+                                // We need to capture the current item_idx for the closures
+                                let current_idx = item_idx;
+                                
+                                // Determine if this item is being dragged to add styling class
+                                let is_dragging = *dragged_item_idx.read() == Some(current_idx);
+                                
+                                match formatter_item {
                                 FormatterItem::Standalone(entry) => {
                                     let duration_clone = entry.duration.clone();
                                     let end_time_clone = entry.end_time.clone();
                                     let count_to_end = entry.count_to_end;
                                     let link_start = entry.link_start;
+                                    // Calculate drag over class
+                                    let drag_over_class = if let (Some(dragged_idx), Some(over_idx)) = (*dragged_item_idx.read(), *drag_over_idx.read()) {
+                                        if over_idx == current_idx && dragged_idx != current_idx {
+                                            if dragged_idx < current_idx {
+                                                " drag-over-bottom"
+                                            } else {
+                                                " drag-over-top"
+                                            }
+                                        } else {
+                                            ""
+                                        }
+                                    } else {
+                                        ""
+                                    };
+
                                     rsx! {
-                                        div { class: "timeline-entry editable-entry",
+                                        div { 
+                                            class: if is_dragging { 
+                                                format!("timeline-entry editable-entry draggable dragging{}", drag_over_class)
+                                            } else { 
+                                                format!("timeline-entry editable-entry draggable{}", drag_over_class)
+                                            },
+                                            draggable: true,
+                                            ondragstart: move |_| {
+                                                dragged_item_idx.set(Some(current_idx));
+                                            },
+                                            ondragenter: move |e| {
+                                                e.prevent_default();
+                                                // Only set if we are dragging something
+                                                if dragged_item_idx.read().is_some() {
+                                                    drag_over_idx.set(Some(current_idx));
+                                                }
+                                            },
+                                            ondragover: move |e| {
+                                                e.prevent_default();
+                                            },
+                                            ondrop: move |e| {
+                                                e.prevent_default();
+                                                let source_idx_opt = *dragged_item_idx.read();
+                                                if let Some(source_idx) = source_idx_opt {
+                                                    if source_idx != current_idx {
+                                                        let mut items = formatter_items.write();
+                                                        let item = items.remove(source_idx);
+                                                        items.insert(current_idx, item);
+                                                    }
+                                                }
+                                                dragged_item_idx.set(None);
+                                                drag_over_idx.set(None);
+                                            },
                                             div { class: "entry-main",
+                                                span { class: "drag-handle", "⋮⋮" }
                                                 span { class: "entry-title", "{entry.name}" }
                                                 button {
                                                     class: "btn-remove",
@@ -544,9 +602,61 @@ pub fn Formatter() -> Element {
                                     let name_clone = name.clone();
                                     let color_clone = color.clone();
                                     let entry_count = entries.len();
+                                    // Calculate drag over class
+                                    let drag_over_class = if let (Some(dragged_idx), Some(over_idx)) = (*dragged_item_idx.read(), *drag_over_idx.read()) {
+                                        if over_idx == current_idx && dragged_idx != current_idx {
+                                            if dragged_idx < current_idx {
+                                                " drag-over-bottom"
+                                            } else {
+                                                " drag-over-top"
+                                            }
+                                        } else {
+                                            ""
+                                        }
+                                    } else {
+                                        ""
+                                    };
+
                                     rsx! {
                                         div {
-                                            class: if selected_group_idx() == Some(item_idx) { "group-card selected" } else { "group-card" },
+                                            class: if selected_group_idx() == Some(item_idx) { 
+                                                format!("group-card selected draggable{}", drag_over_class)
+                                            } else { 
+                                                format!("group-card draggable{}", drag_over_class)
+                                            },
+                                            draggable: true,
+                                            ondragstart: move |_| {
+                                                dragged_item_idx.set(Some(current_idx));
+                                            },
+                                            ondragenter: move |e| {
+                                                e.prevent_default();
+                                                if dragged_item_idx.read().is_some() {
+                                                    drag_over_idx.set(Some(current_idx));
+                                                }
+                                            },
+                                            ondragover: move |e| {
+                                                e.prevent_default();
+                                            },
+                                            ondrop: move |e| {
+                                                e.prevent_default();
+                                                let source_idx_opt = *dragged_item_idx.read();
+                                                if let Some(source_idx) = source_idx_opt {
+                                                    if source_idx != current_idx {
+                                                        let mut items = formatter_items.write();
+                                                        let item = items.remove(source_idx);
+                                                        items.insert(current_idx, item);
+                                                        
+                                                        // Update selection if we moved the selected group
+                                                        if selected_group_idx() == Some(source_idx) {
+                                                            selected_group_idx.set(Some(current_idx));
+                                                        } else if selected_group_idx() == Some(current_idx) {
+                                                            selected_group_idx.set(None);
+                                                        }
+                                                    }
+                                                }
+                                                dragged_item_idx.set(None);
+                                                drag_over_idx.set(None);
+                                            },
                                             onclick: move |_| {
                                                 if selected_group_idx() == Some(item_idx) {
                                                     selected_group_idx.set(None);
@@ -555,6 +665,7 @@ pub fn Formatter() -> Element {
                                                 }
                                             },
                                             div { class: "group-header",
+                                                span { class: "drag-handle", "⋮⋮" }
                                                 input {
                                                     class: "group-name-input",
                                                     value: "{name_clone}",
@@ -683,8 +794,50 @@ pub fn Formatter() -> Element {
                                     }
                                 }
                                 FormatterItem::Reference { title, item_type: _, mode, .. } => {
+                                    // Calculate drag over class
+                                    let drag_over_class = if let (Some(dragged_idx), Some(over_idx)) = (*dragged_item_idx.read(), *drag_over_idx.read()) {
+                                        if over_idx == current_idx && dragged_idx != current_idx {
+                                            if dragged_idx < current_idx {
+                                                " drag-over-bottom"
+                                            } else {
+                                                " drag-over-top"
+                                            }
+                                        } else {
+                                            ""
+                                        }
+                                    } else {
+                                        ""
+                                    };
+
                                     rsx! {
-                                        div { class: "reference-item",
+                                        div { 
+                                            class: format!("reference-item draggable{}", drag_over_class),
+                                            draggable: true,
+                                            ondragstart: move |_| {
+                                                dragged_item_idx.set(Some(current_idx));
+                                            },
+                                            ondragenter: move |e| {
+                                                e.prevent_default();
+                                                if dragged_item_idx.read().is_some() {
+                                                    drag_over_idx.set(Some(current_idx));
+                                                }
+                                            },
+                                            ondragover: move |e| {
+                                                e.prevent_default();
+                                            },
+                                            ondrop: move |e| {
+                                                e.prevent_default();
+                                                let source_idx_opt = *dragged_item_idx.read();
+                                                if let Some(source_idx) = source_idx_opt {
+                                                    if source_idx != current_idx {
+                                                        let mut items = formatter_items.write();
+                                                        let item = items.remove(source_idx);
+                                                        items.insert(current_idx, item);
+                                                    }
+                                                }
+                                                dragged_item_idx.set(None);
+                                                drag_over_idx.set(None);
+                                            },
                                             div { class: "ref-icon",
                                                 if matches!(mode, InsertionMode::Into) {
                                                     "↳"
@@ -693,6 +846,7 @@ pub fn Formatter() -> Element {
                                                 }
                                             }
                                             div { class: "ref-details",
+                                                span { class: "drag-handle", "⋮⋮" }
                                                 span { class: "ref-label",
                                                     if matches!(mode, InsertionMode::Into) {
                                                         "INSERT INTO"
@@ -712,6 +866,7 @@ pub fn Formatter() -> Element {
                                         }
                                     }
                                 }
+                            }
                             }
                         }
                     }
