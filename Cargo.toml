@@ -1,6 +1,6 @@
 [package]
 name = "pp2ot-bridge"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["zurielbm <58864716+zurielbm@users.noreply.github.com>"]
 edition = "2021"
 publish = false
@@ -14,6 +14,7 @@ reqwest = { version = "0.12", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
+dirs = "5.0"
 
 [features]
 default = ["desktop"]

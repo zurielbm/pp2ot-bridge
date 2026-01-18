@@ -40,8 +40,16 @@ impl Default for AppSettings {
 }
 
 impl AppSettings {
+    /// Get the path to the settings file in the user's config directory
+    fn settings_path() -> std::path::PathBuf {
+        let config_dir = dirs::config_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
+        let app_dir = config_dir.join("pp2ot-bridge");
+        app_dir.join("settings.json")
+    }
+
     pub fn load() -> Self {
-        if let Ok(contents) = std::fs::read_to_string("settings.json") {
+        let path = Self::settings_path();
+        if let Ok(contents) = std::fs::read_to_string(&path) {
             if let Ok(settings) = serde_json::from_str(&contents) {
                 return settings;
             }
@@ -50,7 +58,12 @@ impl AppSettings {
     }
 
     pub fn save(&self) -> std::io::Result<()> {
+        let path = Self::settings_path();
+        // Ensure the config directory exists
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
         let contents = serde_json::to_string_pretty(self)?;
-        std::fs::write("settings.json", contents)
+        std::fs::write(&path, contents)
     }
 }
